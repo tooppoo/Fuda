@@ -13,7 +13,16 @@ flowchart TD
     D --> E[検証]
     E --> F[Commit]
     F --> G[レビュー]
-    G --> H([PR 作成・完了])
+
+    G -->|問題なし| H([PR 作成・完了])
+    G -->|要修正| FIX[修正]
+    FIX --> E
+    G -->|自動判断困難| STOP([停止・人間確認])
+
+    C -->|不明点あり| WAIT([停止・回答待ち])
+    D -->|不明点あり| WAIT
+    FIX -->|不明点あり| WAIT
+    WAIT -->|fuda resume| C
 ```
 
 各フェーズの概要:
@@ -30,13 +39,11 @@ flowchart TD
 | `pr_created` | PR 作成済み。`run.json` に PR number / URL を記録した状態 |
 | `succeeded` | Run が正常終了し、終了処理が完了した状態 |
 
-## 補足
+## 主な分岐
 
-通常フローには含まれないが、次のケースが発生することがある。
-
-- **修正ループ**: reviewer が `blocking` / `major` 指摘を出した場合、`reviewing → fixing → testing` を繰り返す
-- **blocked**: writer が不明点を検出した場合、Fuda は Issue にコメントして人間の回答を待つ
-- **human_review_required**: 修正ループ上限到達または自動判断困難な場合、人間の判断を求めて停止する
+- **修正ループ**: reviewer が修正必要と判断した場合、修正 → 検証 を繰り返す（上限あり）
+- **回答待ち**: writer が不明点を検出した場合、Fuda は Issue に質問を投稿して停止する。`fuda resume` で再開できる
+- **人間確認**: 修正ループ上限到達または自動判断が困難な場合、Fuda は停止して人間の判断を求める
 
 各シナリオの詳細は [scenarios.md](scenarios.md) を参照。
 
