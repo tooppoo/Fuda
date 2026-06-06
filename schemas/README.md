@@ -83,6 +83,7 @@ JSON Schema では `"format": "date-time"` を使い、UTC 必須は semantic ru
 - `worktree` が host OS 上の absolute path であること
 - `branch` が Git ref として妥当であること
 - `run_state = "blocked"` の場合だけ `blocked` object が存在すること
+- `run_state = "failed"` の場合だけ `last_error` object が存在すること
 - `terminal_state` と `completion_result` の組み合わせ制約
 - `run-summary.json.pull_request` の required / absent 条件
 - `run-summary.json.review_rounds` と `run.json.review_loop.completed_review_rounds` の対応関係
@@ -107,14 +108,40 @@ agent の raw output は debugging artifact として扱う。
 
 ## 4. Error classification
 
+### Schema / file-level errors
+
 | Error code | 説明 |
 |---|---|
 | `json_parse_error` | ファイルを JSON として読めない |
 | `schema_validation_error` | JSON だがスキーマに合わない（missing required / invalid enum / unknown field） |
 | `unsupported_schema_version` | 未知の `schema_version` |
 | `migration_required` | 既知だが現在サポートしていない旧 `schema_version` |
-| `invalid_agent_output` | reviewer output の parse / normalization 失敗。`review-N.json` は書かれない |
 | `corrupted_run_state` | `run.json` が破損しており resume できない状態 |
+
+### `last_error.code` — Run failure codes
+
+`run_state = "failed"` の場合、失敗原因は `run.json.last_error.code` で表す。`invalid_agent_output` は `run_state` 値としては使用しない。
+
+| Error code | Phase | 説明 |
+|---|---|---|
+| `github_auth_failed` | `loading_issue` | GitHub 認証失敗 |
+| `issue_not_found` | `loading_issue` | Issue が存在しない |
+| `issue_closed` | `loading_issue` | Issue が closed |
+| `main_update_failed` | `preparing_worktree` | main ブランチ更新失敗 |
+| `worktree_create_failed` | `preparing_worktree` | worktree 作成失敗 |
+| `branch_already_exists` | `preparing_worktree` | branch が既存（Fuda 管理 run 不明） |
+| `worktree_path_already_exists` | `preparing_worktree` | worktree path が既存（Fuda 管理 run 不明） |
+| `writer_launch_failed` | `planning` / `writing` | writer agent 起動失敗 |
+| `invalid_writer_output` | `planning` / `writing` | writer 出力が不正。`plan.raw.txt` のみ保存、`plan.json` は書かれない |
+| `verification_failed` | `testing` | test / lint / typecheck 失敗（retry 上限到達後） |
+| `nothing_to_commit` | `committing` | commit 対象変更なし |
+| `commit_failed` | `committing` | commit 失敗 |
+| `reviewer_launch_failed` | `reviewing` | reviewer agent 起動失敗 |
+| `invalid_reviewer_output` | `reviewing` | reviewer 出力が不正。`review-N.raw.txt` のみ保存、`review-N.json` は書かれない |
+| `push_failed` | `pushing` | push 失敗 |
+| `pr_create_failed` | `creating_pr` | PR 作成失敗 |
+| `runner_error` | any | 分類外の runner 例外。上記 code に分類できない runner 内部エラー |
+| `environment_error` | any | 分類外の環境エラー。OS / ファイルシステム / ネットワーク等の非分類障害 |
 
 ### JSON parse error
 
@@ -133,7 +160,7 @@ JSON ではあるがスキーマに合わない場合:
 - missing required / invalid enum / unknown field を区別して表示する
 - 自動でフィールドを捨てない
 - version mismatch は `migration_required` または `unsupported_schema_version` として扱う
-- agent output の validation error は `invalid_agent_output` として停止する
+- agent output の validation error は `run_state = "failed"` + `last_error.code = "invalid_writer_output"` または `"invalid_reviewer_output"` として停止する
 
 ファイルごとの recovery policy は `*.schema.md` を参照。
 
