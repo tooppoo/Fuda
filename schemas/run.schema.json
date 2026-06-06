@@ -53,7 +53,7 @@
         "invalid_agent_output",
         "pr_created",
         "aborted",
-        "closed",
+        "succeeded",
         "failed"
       ]
     },

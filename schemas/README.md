@@ -66,7 +66,7 @@ Fuda-managed persisted JSON では unknown field を原則拒否する。
 | `plan.json` | `planning_result` | writer による計画段階の結果 |
 | `review-N.json` | `reviewer_assessment` | reviewer が自己申告した評価。runner の状態遷移の正本ではない |
 | `review-N.json` | `runner_decision` | normalized findings から runner が導出した制御判断 |
-| `run-summary.json` | `final_run_state` | close / abort / fail 後の最終 Run 状態 |
+| `run-summary.json` | `terminal_state` | succeed / abort / fail 後の終端 Run 状態 |
 | `run-summary.json` | `completion_result` | 実行結果の要約 |
 
 ### 2.5 Timestamps
@@ -83,7 +83,7 @@ JSON Schema では `"format": "date-time"` を使い、UTC 必須は semantic ru
 - `worktree` が host OS 上の absolute path であること
 - `branch` が Git ref として妥当であること
 - `run_state = "blocked"` の場合だけ `blocked` object が存在すること
-- `final_run_state` と `completion_result` の組み合わせ制約
+- `terminal_state` と `completion_result` の組み合わせ制約
 - `run-summary.json.pull_request` の required / absent 条件
 - `run-summary.json.review_rounds` と `run.json.review_loop.completed_review_rounds` の対応関係
 - `codex` が known backend だが v0 executable backend ではないこと
@@ -148,7 +148,7 @@ JSON ではあるがスキーマに合わない場合:
 - [ ] すべての Fuda-managed persisted JSON に `schema_version` が required として定義されている
 - [ ] `schema_version` は integer `const: 1` として定義されている
 - [ ] nested object を含め、unknown field を原則拒否する方針が明記されている
-- [ ] `status` という汎用フィールド名を使わず、`run_state` / `planning_result` / `reviewer_assessment` / `runner_decision` / `final_run_state` / `completion_result` に分離されている
+- [ ] `status` という汎用フィールド名を使わず、`run_state` / `planning_result` / `reviewer_assessment` / `runner_decision` / `terminal_state` / `completion_result` に分離されている
 - [ ] JSON Schema で扱う制約と semantic validation で扱う制約が分けて書かれている
 - [ ] 各対象ファイルについて JSON Schema / Semantic rules / Recovery policy が分けて書かれている
 - [ ] `run.json` の `blocked` object schema と semantic rules が定義されている
@@ -157,7 +157,7 @@ JSON ではあるがスキーマに合わない場合:
 - [ ] `findings` / `human_review_required` から `runner_decision` を導出する正規化ルールが明記されている
 - [ ] `run-summary.json.pull_request` の required / absent 条件が明記されている
 - [ ] `run-summary.json.review_rounds` が `run.json.review_loop.completed_review_rounds` の終端時点の値であることが明記されている
-- [ ] `final_run_state` と `completion_result` の対応表が明記されている
+- [ ] `terminal_state` と `completion_result` の対応表が明記されている
 - [ ] raw output が Fuda-managed persisted JSON ではなく debugging artifact であることが明記されている
 - [ ] JSON parse error の扱いが明記されている
 - [ ] schema validation error の扱いが明記されている

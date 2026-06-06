@@ -130,7 +130,7 @@ Issueが既にclosedの場合は、エラーにせずskipする。
 10. `git worktree prune` を実行する
 11. 中間ファイルを削除する
 12. summaryを保存する
-13. run状態をclosedにする
+13. run状態をsucceededにする
 ```
 
 ### シーケンス図
@@ -158,7 +158,7 @@ sequenceDiagram
     fuda->>git: git worktree prune
     fuda->>fuda: delete intermediate files
     fuda->>fuda: write summary
-    fuda->>fuda: set status=closed
+    fuda->>fuda: set run_state=succeeded
     fuda-->>user: done
 ```
 
