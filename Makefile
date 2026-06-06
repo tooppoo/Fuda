@@ -26,5 +26,9 @@ vuln:
 tidy:
 	go mod tidy
 
+.PHONY: build
+build:
+	go build -o ./bin/fuda ./cmd/fuda
+
 .PHONY: check
 check: fmt-check vet test vuln
