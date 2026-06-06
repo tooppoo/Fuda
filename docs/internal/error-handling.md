@@ -20,7 +20,9 @@
 
 ## `invalid_agent_output` の扱い
 
-`invalid_agent_output` は `run_state` としては使用しない。`run_state` はライフサイクル状態を表すフィールドであり、`invalid_agent_output` は失敗原因である。
+> **注意**: `state-machine.md` および `schemas/run.schema.json` は現在も `invalid_agent_output` を有効な `run_state` として定義している。このセクションはそれらと未同期の **将来方針** である。schema 側の更新は後続 Issue で実施する。
+
+このドキュメントでは、`invalid_agent_output` を `run_state` としては使用しない方針を定める。`run_state` はライフサイクル状態を表すフィールドであり、`invalid_agent_output` は失敗原因である。
 
 agent 出力不正は、`run_state = failed` と `last_error.code` の組み合わせで表す。
 
@@ -95,7 +97,7 @@ Run の各 phase における失敗ケースを以下に定義する。`Run stat
 | worktree path既存 (Fuda管理run不明) | `preparing_worktree` | `worktree_path_already_exists` | 手動確認後に再実行 | 上書きせず停止 | `failed` |
 | writer agent起動失敗 | `planning` / `writing` | `writer_launch_failed` | yes | raw なしで停止 | `failed` |
 | writer出力が不正 | `planning` / `writing` | `invalid_writer_output` | 明示的な再実行 | raw 保存、正規化 JSON を書かず停止 | `failed` |
-| test / lint / typecheck失敗 | `testing` | `verification_failed` | 最大2回まで writer に修正依頼 | 上限前: `fixing` へ遷移。上限到達後: PR 作成せず停止、失敗 command / exit code / 要約 log を表示 | `testing` (retry中) / `failed` (上限到達後) |
+| test / lint / typecheck失敗 | `testing` | `verification_failed` | 最大2回まで writer に修正依頼 | retry 中は `testing` → `fixing` を経由。上限到達後: PR 作成せず停止、失敗 command / exit code / 要約 log を表示 | `failed` |
 | commit対象変更なし | `committing` | `nothing_to_commit` | デフォルトでは no | PR 作成せず停止 | `failed` |
 | commit失敗 | `committing` | `commit_failed` | 手動修正後に再実行 | diff を保持して停止 | `failed` |
 | reviewer agent起動失敗 | `reviewing` | `reviewer_launch_failed` | yes | review round を進めず停止 | `failed` |
