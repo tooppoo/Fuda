@@ -29,15 +29,17 @@ flowchart TD
 
 | フェーズ | 内容 |
 |---|---|
-| `loading_issue` | GitHub Issue の本文・コメントを取得する |
-| `preparing_worktree` | Issue 専用の worktree と branch を作成する |
-| `planning` | writer agent が実装計画を作成する |
-| `writing` | writer agent が変更を実装する |
-| `testing` | test / lint / typecheck を実行して検証する |
-| `committing` | 変更を commit する |
-| `reviewing` | reviewer agent が差分・テスト結果・受け入れ基準を検査する |
-| `pr_created` | PR 作成済み。`run.json` に PR number / URL を記録した状態 |
-| `succeeded` | Run が正常終了し、終了処理が完了した状態 |
+| Issue 取得 | GitHub Issue の本文・コメントを取得する |
+| Worktree 準備 | Issue 専用の worktree と branch を作成する |
+| 計画 | writer agent が実装計画を作成する |
+| 実装 | writer agent が変更を実装する |
+| 検証 | test / lint / typecheck を実行して検証する |
+| Commit | 変更を commit する |
+| レビュー | reviewer agent が差分・テスト結果・受け入れ基準を検査する |
+| 修正 | reviewer の指摘を受けて writer agent が修正する |
+| PR 作成・完了 | PR を作成し、Run が正常終了する |
+| 停止・回答待ち | writer が不明点を検出した場合に停止する。`fuda resume` で再開できる |
+| 停止・人間確認 | 自動判断が困難な場合に停止する。人間の判断を求める |
 
 ## 主な分岐
 
