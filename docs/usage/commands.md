@@ -174,7 +174,7 @@ fuda close 7
 4. `git worktree prune` を実行する
 5. 中間ファイルを削除する
 6. summaryを保存する
-7. run状態をclosedにする
+7. run状態をsucceededにする
 
 ### 安全条件
 

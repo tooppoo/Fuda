@@ -190,7 +190,7 @@ close後に残すsummary。スキーマ: [run-summary.schema.json](../../schemas
     "number": 12,
     "url": "https://github.com/tooppoo/fuda/pull/12"
   },
-  "final_run_state": "closed",
+  "terminal_state": "succeeded",
   "completion_result": "pr_created",
   "started_at": "2026-06-06T00:00:00Z",
   "finished_at": "2026-06-06T01:00:00Z",
