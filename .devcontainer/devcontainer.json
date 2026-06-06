@@ -1,0 +1,12 @@
+{
+  "name": "Fuda",
+  "image": "mcr.microsoft.com/devcontainers/go:1.26-bookworm",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "golang.go"
+      ]
+    }
+  },
+  "postCreateCommand": "go install github.com/go-delve/delve/cmd/dlv@latest && go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest && go install golang.org/x/vuln/cmd/govulncheck@latest && ([ -f go.mod ] && go mod tidy || true)"
+}
