@@ -1,0 +1,296 @@
+# 処理シーケンス
+
+## `fuda resolve <issue-number>` の処理フロー
+
+```bash
+fuda resolve 7
+```
+
+### ステップ
+
+```
+1.  設定を読み込む
+2.  GitHub認証を確認する
+3.  対象repositoryを確認する
+4.  Issue本文・Issueコメントを取得する
+5.  runディレクトリを作成する
+6.  mainを最新化する
+7.  Issue専用worktreeを作成する
+8.  writerにplanを作成させる
+9.  planにblockedがあればIssueに質問コメントを投稿して停止する
+10. writerに作業させる
+11. test / lint / typecheck を実行する
+12. 変更をcommitする
+13. reviewerに差分レビューさせる
+14. reviewer出力を正規化してrunner decisionを決める
+15. `blocking` / `major` findingsがあればwriterに修正させる
+16. 修正後にtest / lint / typecheckを再実行する
+17. 修正をcommitする
+18. reviewerに再レビューさせる
+19. `blocking` / `major` findingsがなくなるまで15〜18を繰り返す
+20. findingsがない、または `minor` findingsのみならPRを作成する
+21. PR URLを表示する
+22. run状態をpr-createdにする
+```
+
+v0ではrunnerの状態遷移をreviewerの `status` だけで決めない。
+reviewer出力を正規化し、findingsのseverityと `human_review_required` からrunner decisionを導出する。
+
+| reviewer出力 | runner decision | 遷移 |
+|--------------|-----------------|------|
+| findingsなし | `pass` | PR作成へ進む |
+| `minor` findingsのみ | `ready_with_minor_findings` | PR作成へ進み、minor findingsをPR本文とrun summaryに記録する |
+| `blocking` / `major` findingsあり | `needs_revision` | 修正ループに入る |
+| `human_review_required` が空でない | `human_review_required` | v0では停止して人間確認を求める |
+| reviewer JSONが不正 | `invalid_review_output` | 停止する |
+
+### シーケンス図
+
+```mermaid
+sequenceDiagram
+    actor user
+    participant fuda
+    participant github
+    participant worktree
+    participant writer
+    participant reviewer
+
+    user->>fuda: resolve 7
+    fuda->>github: load config / auth check
+    fuda->>github: get issue
+    github-->>fuda: issue data
+    fuda->>worktree: create worktree
+    fuda->>writer: plan
+    writer-->>fuda: plan result
+    fuda->>writer: write
+    writer-->>fuda: changes
+    fuda->>worktree: test / lint / typecheck
+    fuda->>worktree: commit
+    fuda->>reviewer: review
+    reviewer-->>fuda: review output
+    fuda->>fuda: normalize findings
+
+    alt blocking or major findings exist
+        fuda->>writer: fix
+        writer-->>fuda: changes
+        fuda->>worktree: test / lint / typecheck
+        fuda->>worktree: commit
+        fuda->>reviewer: review
+        reviewer-->>fuda: no findings
+        fuda->>github: create PR
+        github-->>fuda: PR URL
+        fuda-->>user: PR URL
+    else only minor findings
+        fuda->>fuda: record minor findings for PR body and summary
+        fuda->>github: create PR
+        github-->>fuda: PR URL
+        fuda-->>user: PR URL
+    else no findings
+        fuda->>github: create PR
+        github-->>fuda: PR URL
+        fuda-->>user: PR URL
+    else human review required
+        fuda-->>user: stop and request human confirmation
+    end
+```
+
+---
+
+## `fuda close <issue-number>` の処理フロー
+
+```bash
+fuda close 7
+```
+
+### 前提条件（安全条件）
+
+`fuda close` は、以下の状態の場合に停止する:
+
+* 対応PRが存在しない
+* 対応PRが未mergeである
+* worktreeに未commit変更がある
+* worktree branchに未push commitがある
+* run状態が不明である
+* 対象worktreeがFuda管理下であることを確認できない
+
+Issueが既にclosedの場合は、エラーにせずskipする。
+
+### ステップ
+
+```
+1.  run metadataを読む
+2.  対応Issueの状態を確認する
+3.  対応PRの状態を確認する
+4.  worktreeのclean状態を確認する
+5.  未push commitがないか確認する
+6.  Issueがopenならcloseする
+7.  Issueがclosedならskipする
+8.  mainを更新する
+9.  対象worktreeを削除する
+10. `git worktree prune` を実行する
+11. 中間ファイルを削除する
+12. summaryを保存する
+13. run状態をclosedにする
+```
+
+### シーケンス図
+
+```mermaid
+sequenceDiagram
+    actor user
+    participant fuda
+    participant github
+    participant worktree
+    participant git
+
+    user->>fuda: close 7
+    fuda->>fuda: read run metadata
+    fuda->>github: check issue state
+    fuda->>github: check PR state
+    fuda->>worktree: check clean state
+    fuda->>git: check unpushed commits
+
+    note over fuda: all checks pass
+
+    fuda->>github: close issue
+    fuda->>git: update main
+    fuda->>worktree: delete worktree
+    fuda->>git: git worktree prune
+    fuda->>fuda: delete intermediate files
+    fuda->>fuda: write summary
+    fuda->>fuda: set status=closed
+    fuda-->>user: done
+```
+
+---
+
+## Blocked フロー
+
+writerが不明点を検出した場合のシーケンス:
+
+```mermaid
+sequenceDiagram
+    actor user
+    participant fuda
+    participant github
+    participant writer
+
+    fuda->>writer: write / plan
+    writer-->>fuda: blocked (questions)
+    fuda->>github: post question comment
+
+    note over fuda,github: waiting for answer
+
+    user->>fuda: answer 7
+    fuda->>github: post comment
+    user->>fuda: resume 7
+    fuda->>github: get new comments
+    github-->>fuda: answer comments
+    fuda->>writer: resume write with answers
+    writer-->>fuda: changes
+```
+
+### Issueへの質問コメント形式
+
+```markdown
+<!-- fuda:question run=<run-id> issue=7 question=q1 -->
+
+## Fuda blocked: clarification needed
+
+作業中に次の不明点が見つかりました。
+
+1. Should Fuda create a PR automatically, or only generate a PR body?
+
+このコメントへの返信、または `fuda answer 7` で回答してください。
+```
+
+---
+
+## Worktree 作成の処理
+
+### 既存Worktreeの扱い
+
+既存worktreeがある場合、Fudaは勝手に上書きしない。
+
+| run状態 | 扱い |
+|---------|------|
+| active | `resume` 候補として表示する |
+| blocked | 回答待ちとして表示する |
+| done / pr-created | `close` を促す |
+| 状態不明 | 停止し、人間確認を求める |
+
+### Worktree 命名規則
+
+```
+{worktree_root}/{repo_name}-issue-{issue_number}
+```
+
+例:
+
+```
+~/src/fuda-worktrees/fuda-issue-7
+```
+
+branch名:
+
+```
+fuda/issue-7
+```
+
+---
+
+## PR 作成
+
+`blocking` / `major` findingsがなくなったら、FudaはPRを作成する。
+`minor` findingsのみが残っている場合もPR作成へ進むが、PR本文とrun summaryに記録する。
+`human_review_required` が空でない場合、v0ではPR作成へ進まず停止する。
+
+PR本文の最低限の構成:
+
+```markdown
+## Summary
+
+...
+
+## Related Issue
+
+Closes #7
+
+## Verification
+
+- [x] test command
+- [x] lint command
+- [x] typecheck command
+- [x] Fuda internal review: pass
+
+## Fuda Run
+
+- writer: claude
+- reviewer: claude/code-reviewer
+- review loops: 2
+- unresolved human review points: none
+- minor findings: none
+```
+
+FudaはPRを作成するが、mergeはしない。
+
+---
+
+## Issueコメントの状態管理
+
+Fudaが状態コメントを投稿する場合、Fuda管理用markerを含める:
+
+```markdown
+<!-- fuda:run-status issue=7 run=<run-id> -->
+
+## Fuda run status
+
+Status: reviewing  
+Worktree: fuda-issue-7  
+Branch: fuda/issue-7  
+Writer: claude  
+Reviewer: claude/code-reviewer  
+Review loop: 1/3
+```
+
+v0では新規コメント投稿のみ。将来的にはmarker付きコメントを検索し、同じ状態コメントを更新する。
