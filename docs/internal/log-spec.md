@@ -1,8 +1,8 @@
 # ログ仕様
 
-## Run Log
+> JSON フォーマットの正本は [`schemas/`](../../schemas/README.md) 以下の各スキーマファイル。このドキュメントはファイル構成・目的・サンプルを示す。
 
-Fudaは各runのログをローカルに保存する。
+## Run Log
 
 ### 目的
 
@@ -21,17 +21,20 @@ Fudaは各runのログをローカルに保存する。
 .fuda/runs/{issue_number}/
   run.json          # run全体のメタデータ・状態
   issue.md          # 取得したIssue本文とコメント
-  plan.json         # writerが作成したplan
+  plan.json         # writerが作成したplan（正規化済み）
+  plan.raw.txt      # writerのraw output（debugging artifact）
   implement.log     # writer実行ログ
   test-1.log        # 1回目のtest/lint/typecheck実行ログ
-  review-1.json     # 1回目のreviewerレビュー結果
+  review-1.json     # 1回目のreviewerレビュー結果（正規化済み）
+  review-1.raw.txt  # 1回目のreviewer raw output（debugging artifact）
   fix-1.log         # 1回目の修正ログ
   test-2.log        # 2回目のtest/lint/typecheck実行ログ
   review-2.json     # 2回目のレビュー結果
+  review-2.raw.txt  # 2回目のreviewer raw output
   pr.md             # PR本文
 ```
 
-ループが続く場合は `review-N.json` / `fix-N.log` / `test-N.log` が追加される。
+ループが続く場合は `review-N.json` / `review-N.raw.txt` / `fix-N.log` / `test-N.log` が追加される。
 
 ---
 
@@ -39,20 +42,23 @@ Fudaは各runのログをローカルに保存する。
 
 ### `run.json`
 
-runの状態とメタデータを管理するファイル。
+runの状態とメタデータを管理するファイル。スキーマ: [run.schema.json](../../schemas/run.schema.json) / [run.schema.md](../../schemas/run.schema.md)
 
 ```json
 {
+  "schema_version": 1,
   "run_id": "<run-id>",
-  "issue": 7,
   "repository": "tooppoo/fuda",
+  "issue_number": 7,
+  "run_state": "reviewing",
   "branch": "fuda/issue-7",
-  "worktree": "~/src/fuda-worktrees/fuda-issue-7",
-  "status": "reviewing",
-  "writer": "claude",
-  "reviewer": "claude/code-reviewer",
-  "review_loop": 1,
-  "max_review_loops": 3,
+  "worktree": "/home/user/src/fuda-worktrees/fuda-issue-7",
+  "writer": { "backend": "claude" },
+  "reviewer": { "backend": "claude" },
+  "review_loop": {
+    "completed_review_rounds": 1,
+    "max_rounds": 3
+  },
   "created_at": "2026-06-06T00:00:00Z",
   "updated_at": "2026-06-06T00:20:00Z"
 }
@@ -60,23 +66,31 @@ runの状態とメタデータを管理するファイル。
 
 ### `plan.json`
 
-writerが作成したplan。blockedの場合は `status: "blocked"` を含む。
+writerが作成したplan（正規化済み）。スキーマ: [plan.schema.json](../../schemas/plan.schema.json) / [plan.schema.md](../../schemas/plan.schema.md)
 
-passの場合:
+`planning_result = "ready_to_write"` の場合:
 
 ```json
 {
-  "status": "ready",
-  "steps": [...]
+  "schema_version": 1,
+  "planning_result": "ready_to_write",
+  "summary": "Implement schema validation for run.json and plan.json.",
+  "tasks": [
+    { "id": "task-1", "description": "Define run.json JSON Schema." },
+    { "id": "task-2", "description": "Define plan.json JSON Schema." }
+  ],
+  "questions": []
 }
 ```
 
-blockedの場合:
+`planning_result = "blocked_by_ambiguity"` の場合:
 
 ```json
 {
-  "status": "blocked",
-  "reason": "acceptance criteria are ambiguous",
+  "schema_version": 1,
+  "planning_result": "blocked_by_ambiguity",
+  "summary": "Issue acceptance criteria are ambiguous.",
+  "tasks": [],
   "questions": [
     {
       "id": "q1",
@@ -89,15 +103,18 @@ blockedの場合:
 
 ### `review-N.json`
 
-N回目のレビュー結果。
+N回目のレビュー結果（正規化済み）。スキーマ: [review.schema.json](../../schemas/review.schema.json) / [review.schema.md](../../schemas/review.schema.md)
 
 passの場合:
 
 ```json
 {
-  "status": "pass",
+  "schema_version": 1,
+  "review_number": 1,
+  "reviewer_assessment": "pass",
   "findings": [],
-  "human_review_required": []
+  "human_review_required": [],
+  "runner_decision": "pass"
 }
 ```
 
@@ -105,7 +122,9 @@ passの場合:
 
 ```json
 {
-  "status": "needs_fix",
+  "schema_version": 1,
+  "review_number": 1,
+  "reviewer_assessment": "needs_fix",
   "findings": [
     {
       "id": "r1",
@@ -117,7 +136,8 @@ passの場合:
       "required_fix": "Ignore comments authored by the configured GitHub actor and comments containing fuda markers."
     }
   ],
-  "human_review_required": []
+  "human_review_required": [],
+  "runner_decision": "needs_revision"
 }
 ```
 
@@ -138,9 +158,11 @@ passの場合:
 |---------|------|
 | `issue.md` | Issueの内容 |
 | `plan.json` | writerのplan |
+| `plan.raw.txt` | writer raw output |
 | `implement.log` | writer実行ログ |
 | `test-*.log` | テスト実行ログ |
 | `review-*.json` | レビュー結果 |
+| `review-*.raw.txt` | reviewer raw output |
 | `fix-*.log` | 修正ログ |
 | `pr.md` | PR本文 |
 
@@ -154,19 +176,25 @@ passの場合:
 
 ## `run-summary.json`
 
-close後に残すsummary。
+close後に残すsummary。スキーマ: [run-summary.schema.json](../../schemas/run-summary.schema.json) / [run-summary.schema.md](../../schemas/run-summary.schema.md)
 
 ```json
 {
-  "issue": 7,
+  "schema_version": 1,
   "repository": "tooppoo/fuda",
+  "issue_number": 7,
+  "run_id": "<run-id>",
   "branch": "fuda/issue-7",
-  "worktree": "~/src/fuda-worktrees/fuda-issue-7",
-  "pull_request": 12,
-  "status": "closed",
-  "writer": "claude",
-  "reviewer": "claude/code-reviewer",
-  "review_loops": 2,
+  "worktree": "/home/user/src/fuda-worktrees/fuda-issue-7",
+  "pull_request": {
+    "number": 12,
+    "url": "https://github.com/tooppoo/fuda/pull/12"
+  },
+  "final_run_state": "closed",
+  "completion_result": "pr_created",
+  "started_at": "2026-06-06T00:00:00Z",
+  "finished_at": "2026-06-06T01:00:00Z",
+  "review_rounds": 2,
   "minor_findings": [
     {
       "id": "r3",
@@ -174,9 +202,6 @@ close後に残すsummary。
       "message": "Consider renaming this helper."
     }
   ],
-  "created_at": "2026-06-06T00:00:00Z",
-  "pr_created_at": "2026-06-06T00:30:00Z",
-  "closed_at": "2026-06-06T01:00:00Z",
   "forced": false
 }
 ```
