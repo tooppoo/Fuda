@@ -5,19 +5,15 @@
 ## 通常フロー（happy path）
 
 ```mermaid
-stateDiagram-v2
-    [*] --> loading_issue : fuda resolve &lt;issue&gt;
-
-    loading_issue --> preparing_worktree : Issue 取得完了
-    preparing_worktree --> planning : worktree 作成完了
-    planning --> writing : 計画完了
-    writing --> testing : 変更完了
-    testing --> committing : テスト通過
-    committing --> reviewing : commit 作成
-    reviewing --> pr_created : レビュー通過・PR 作成
-    pr_created --> succeeded : 終了処理完了
-
-    succeeded --> [*]
+flowchart TD
+    START([fuda resolve &lt;issue&gt;]) --> A[Issue 取得]
+    A --> B[Worktree 準備]
+    B --> C[計画]
+    C --> D[実装]
+    D --> E[検証]
+    E --> F[Commit]
+    F --> G[レビュー]
+    G --> H([PR 作成・完了])
 ```
 
 各フェーズの概要:
@@ -44,4 +40,4 @@ stateDiagram-v2
 
 各シナリオの詳細は [scenarios.md](scenarios.md) を参照。
 
-完全な状態遷移（異常系・再開ポリシーを含む）は [内部仕様: Run State Machine](../internal/state-machine.md) を参照。
+完全な状態遷移図（`run_state` enum・異常系・再開ポリシーを含む）は [内部仕様: Run State Machine](../internal/state-machine.md) を参照。
