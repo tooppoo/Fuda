@@ -76,7 +76,7 @@ test / lint / typecheck 失敗は review loop とは別の **verification failur
 
 **Fuda-managed run を特定できる場合**: 新しい run は作らず、既存 run の状態を表示して停止する。`run_state` は既存 run のものを維持する。
 
-**Fuda-managed run を特定できない場合**: 新しい run は作らず、`run_state = failed` として停止する。
+**Fuda-managed run を特定できない場合**: 新しい run を `run_state = failed` として作成して停止する。
 
 ---
 
