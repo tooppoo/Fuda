@@ -1,0 +1,181 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "run.schema.json",
+  "title": "run.json",
+  "description": "Current run state and metadata. Authoritative source for resume, stop, and inspection.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "run_id",
+    "repository",
+    "issue_number",
+    "run_state",
+    "branch",
+    "worktree",
+    "writer",
+    "reviewer",
+    "review_loop",
+    "created_at",
+    "updated_at"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "const": 1
+    },
+    "run_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "repository": {
+      "type": "string",
+      "pattern": "^[^/]+/[^/]+$"
+    },
+    "issue_number": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "run_state": {
+      "type": "string",
+      "enum": [
+        "initialized",
+        "loading_issue",
+        "preparing_worktree",
+        "planning",
+        "blocked",
+        "writing",
+        "testing",
+        "committing",
+        "reviewing",
+        "fixing",
+        "human_review_required",
+        "invalid_agent_output",
+        "pr_created",
+        "aborted",
+        "closed",
+        "failed"
+      ]
+    },
+    "branch": {
+      "type": "string",
+      "minLength": 1
+    },
+    "worktree": {
+      "type": "string",
+      "minLength": 1
+    },
+    "writer": {
+      "type": "object",
+      "required": ["backend"],
+      "additionalProperties": false,
+      "properties": {
+        "backend": {
+          "type": "string",
+          "enum": ["claude", "codex"]
+        }
+      }
+    },
+    "reviewer": {
+      "type": "object",
+      "required": ["backend"],
+      "additionalProperties": false,
+      "properties": {
+        "backend": {
+          "type": "string",
+          "enum": ["claude", "codex"]
+        }
+      }
+    },
+    "review_loop": {
+      "type": "object",
+      "required": ["completed_review_rounds", "max_rounds"],
+      "additionalProperties": false,
+      "properties": {
+        "completed_review_rounds": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "max_rounds": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "pull_request": {
+      "type": "object",
+      "required": ["number", "url"],
+      "additionalProperties": false,
+      "properties": {
+        "number": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        }
+      }
+    },
+    "blocked": {
+      "type": "object",
+      "required": [
+        "questions",
+        "question_comment_id",
+        "question_posted_at",
+        "waiting_since"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "questions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["id", "question", "blocking"],
+            "additionalProperties": false,
+            "properties": {
+              "id": { "type": "string" },
+              "question": { "type": "string" },
+              "blocking": { "type": "boolean", "const": true }
+            }
+          }
+        },
+        "question_comment_id": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "question_posted_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "waiting_since": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "last_seen_issue_comment_id": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "if": {
+    "properties": { "run_state": { "const": "blocked" } },
+    "required": ["run_state"]
+  },
+  "then": {
+    "required": ["blocked"]
+  },
+  "else": {
+    "not": { "required": ["blocked"] }
+  }
+}

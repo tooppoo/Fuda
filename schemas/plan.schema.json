@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "plan.schema.json",
+  "title": "plan.json",
+  "description": "Normalized writer output: how the writer interpreted the Issue and whether it can proceed.",
+  "type": "object",
+  "required": ["schema_version", "planning_result", "summary", "tasks", "questions"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "const": 1
+    },
+    "planning_result": {
+      "type": "string",
+      "enum": ["ready_to_write", "blocked_by_ambiguity"]
+    },
+    "summary": {
+      "type": "string"
+    },
+    "tasks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "description"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string" },
+          "description": { "type": "string" }
+        }
+      }
+    },
+    "questions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "question", "blocking"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string" },
+          "question": { "type": "string" },
+          "blocking": { "type": "boolean" }
+        }
+      }
+    }
+  }
+}

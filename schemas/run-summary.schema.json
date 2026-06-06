@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "run-summary.schema.json",
+  "title": "run-summary.json",
+  "description": "Lightweight audit summary retained after close/abort/fail. Must not contain detailed logs, prompts, diffs, tokens, or environment variables.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "repository",
+    "issue_number",
+    "run_id",
+    "branch",
+    "worktree",
+    "final_run_state",
+    "completion_result",
+    "started_at",
+    "finished_at",
+    "review_rounds",
+    "minor_findings",
+    "forced"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "const": 1
+    },
+    "repository": {
+      "type": "string",
+      "pattern": "^[^/]+/[^/]+$"
+    },
+    "issue_number": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "run_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "branch": {
+      "type": "string",
+      "minLength": 1
+    },
+    "worktree": {
+      "type": "string",
+      "minLength": 1
+    },
+    "pull_request": {
+      "type": "object",
+      "required": ["number", "url"],
+      "additionalProperties": false,
+      "properties": {
+        "number": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        }
+      }
+    },
+    "final_run_state": {
+      "type": "string",
+      "enum": ["closed", "aborted", "failed"]
+    },
+    "completion_result": {
+      "type": "string",
+      "enum": [
+        "pr_created",
+        "closed_without_pr",
+        "aborted_by_user",
+        "failed_due_to_invalid_state",
+        "failed_due_to_agent_error",
+        "failed_due_to_git_error"
+      ]
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "finished_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "review_rounds": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "minor_findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "category", "message"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string" },
+          "category": {
+            "type": "string",
+            "enum": [
+              "bug", "test", "scope", "design",
+              "security", "docs", "style", "maintainability", "other"
+            ]
+          },
+          "message": { "type": "string" }
+        }
+      }
+    },
+    "forced": {
+      "type": "boolean"
+    }
+  }
+}
