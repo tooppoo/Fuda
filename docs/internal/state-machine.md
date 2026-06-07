@@ -33,7 +33,6 @@ committing
 reviewing
 fixing
 human_review_required
-invalid_agent_output
 pr_created
 succeeded
 aborted
@@ -52,7 +51,7 @@ failed
 |---|---|
 | initialized | `initialized` |
 | active | `loading_issue`, `preparing_worktree`, `planning`, `writing`, `testing`, `committing`, `reviewing`, `fixing` |
-| waiting for human | `blocked`, `human_review_required`, `invalid_agent_output` |
+| waiting for human | `blocked`, `human_review_required` |
 | succeeded | `pr_created`, `succeeded` |
 | terminated | `aborted`, `failed` |
 
@@ -77,11 +76,11 @@ stateDiagram-v2
 
     planning --> writing : planning_result = ready_to_write
     planning --> blocked : planning_result = blocked_by_ambiguity
-    planning --> invalid_agent_output : parse / validation / normalization failed
+    planning --> failed : invalid_writer_output
 
     writing --> testing : writer completed changes
     writing --> blocked : writer cannot continue
-    writing --> invalid_agent_output : writer output invalid
+    writing --> failed : invalid_writer_output
 
     testing --> committing : tests pass
     testing --> fixing : tests fail, auto-fix allowed
@@ -90,7 +89,7 @@ stateDiagram-v2
     committing --> reviewing : commit created
     committing --> failed : commit failed
 
-    reviewing --> invalid_agent_output : reviewer output parse / schema validation / normalization failed
+    reviewing --> failed : invalid_reviewer_output
     reviewing --> pr_created : runner_decision = pass / ready_with_minor_findings and PR creation succeeded
     reviewing --> failed : PR creation failed after pass decision
     reviewing --> fixing : runner_decision = needs_revision and review loop remains
@@ -106,9 +105,6 @@ stateDiagram-v2
     blocked --> writing : human resolved (from writing / fixing phase)
     human_review_required --> fixing : human approves continuation
     human_review_required --> pr_created : human approves as-is
-    invalid_agent_output --> planning : explicit re-run
-    invalid_agent_output --> writing : explicit re-run
-    invalid_agent_output --> reviewing : explicit re-review
 
     succeeded --> [*]
     aborted --> [*]
@@ -130,16 +126,16 @@ stateDiagram-v2
 | `preparing_worktree` | git safety violation (unrecoverable) | `failed` | Git 操作仕様に従う |
 | `planning` | `planning_result = ready_to_write` | `writing` | `plan.json` は正規化済み output |
 | `planning` | `planning_result = blocked_by_ambiguity` | `blocked` | `blocked` object は `schemas/run.schema.json` を正とする |
-| `planning` | plan output parse / validation / normalization failed | `invalid_agent_output` | raw output は保存するが state JSON として信用しない |
+| `planning` | plan output parse / validation / normalization failed | `failed` | `last_error.code = invalid_writer_output`。raw output は保存するが `plan.json` は書かない |
 | `writing` | writer completed changes | `testing` | 変更後検証へ |
 | `writing` | writer cannot continue | `blocked` | blocking question あり |
-| `writing` | writer output invalid | `invalid_agent_output` | agent output の parse / validation / normalization failure |
+| `writing` | writer output invalid | `failed` | `last_error.code = invalid_writer_output`。agent output の parse / validation / normalization failure |
 | `testing` | tests pass | `committing` | commit 前 diff 確認を含む |
 | `testing` | tests fail and auto-fix allowed | `fixing` | writer に戻す |
 | `testing` | tests fail and cannot continue | `blocked` | 人間判断待ち |
 | `committing` | commit created | `reviewing` | reviewer へ |
 | `committing` | commit failed | `failed` | Git 操作失敗 |
-| `reviewing` | reviewer output parse / schema validation / normalization failed | `invalid_agent_output` | `review-N.json` は書かない。`review-N.raw.txt` のみ保存 |
+| `reviewing` | reviewer output parse / schema validation / normalization failed | `failed` | `last_error.code = invalid_reviewer_output`。`review-N.json` は書かない。`review-N.raw.txt` のみ保存 |
 | `reviewing` | `runner_decision = pass` and PR creation succeeded | `pr_created` | `run.json.pull_request` に PR number / URL を記録する |
 | `reviewing` | `runner_decision = ready_with_minor_findings` and PR creation succeeded | `pr_created` | minor findings は summary に残す |
 | `reviewing` | PR creation failed after pass decision | `failed` | runner / GitHub API failure |
@@ -153,7 +149,6 @@ stateDiagram-v2
 | any non-terminal | unrecoverable runner / environment error | `failed` | runner / environment failure |
 | `blocked` | human resolved questions | `planning` or `writing` | blocked reason に依存 |
 | `human_review_required` | human approves continuation | `fixing` or `pr_created` | human decision に依存 |
-| `invalid_agent_output` | explicit re-run / re-review | `planning` / `writing` / `reviewing` | 自動復旧しない |
 | `succeeded` | — | terminal | 遷移不可 |
 | `aborted` | — | terminal | 遷移不可 |
 | `failed` | — | terminal by default | 明示 recover command がない限り遷移不可 |
@@ -164,7 +159,7 @@ stateDiagram-v2
 
 `reviewer_assessment` は状態遷移の正本ではない。`review-N.json.runner_decision` を、`reviewing` 後の遷移判断の正本とする。
 
-`runner_decision = invalid_review_output` は使用しない。reviewer output の parse / schema validation / normalization に失敗した場合、`review-N.json` は書かず、`review-N.raw.txt` のみ保存し、`run_state = invalid_agent_output` に遷移する。
+`runner_decision = invalid_review_output` は使用しない。reviewer output の parse / schema validation / normalization に失敗した場合、`review-N.json` は書かず、`review-N.raw.txt` のみ保存し、`run_state = failed` + `last_error.code = invalid_reviewer_output` に遷移する。
 
 `runner_decision` は次の4値のみを使う。
 
@@ -273,7 +268,6 @@ run-summary.json.pull_request      = { number: ..., url: ... }
 | `reviewing` | conditional | Check latest commit and `review-N.json` consistency |
 | `fixing` | conditional | Check `completed_review_rounds` and worktree consistency |
 | `human_review_required` | no | Require human decision |
-| `invalid_agent_output` | no | Require explicit re-run / re-review command |
 | `pr_created` | conditional | Verify PR info and write summary / finalize if safe |
 | `succeeded` | no | Terminal |
 | `aborted` | no | Terminal |

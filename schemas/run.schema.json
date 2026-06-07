@@ -50,7 +50,6 @@
         "reviewing",
         "fixing",
         "human_review_required",
-        "invalid_agent_output",
         "pr_created",
         "aborted",
         "succeeded",
@@ -159,6 +158,56 @@
         }
       }
     },
+    "last_error": {
+      "type": "object",
+      "required": ["code", "phase", "message", "recoverability", "occurred_at"],
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "type": "string",
+          "enum": [
+            "github_auth_failed",
+            "issue_not_found",
+            "issue_closed",
+            "main_update_failed",
+            "worktree_create_failed",
+            "branch_already_exists",
+            "worktree_path_already_exists",
+            "writer_launch_failed",
+            "invalid_writer_output",
+            "verification_failed",
+            "nothing_to_commit",
+            "commit_failed",
+            "reviewer_launch_failed",
+            "invalid_reviewer_output",
+            "push_failed",
+            "pr_create_failed",
+            "runner_error",
+            "environment_error"
+          ]
+        },
+        "phase": {
+          "type": "string",
+          "minLength": 1
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1
+        },
+        "recoverability": {
+          "type": "string",
+          "minLength": 1
+        },
+        "occurred_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "artifact": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
     "created_at": {
       "type": "string",
       "format": "date-time"
@@ -168,14 +217,22 @@
       "format": "date-time"
     }
   },
-  "if": {
-    "properties": { "run_state": { "const": "blocked" } },
-    "required": ["run_state"]
-  },
-  "then": {
-    "required": ["blocked"]
-  },
-  "else": {
-    "not": { "required": ["blocked"] }
-  }
+  "allOf": [
+    {
+      "if": {
+        "properties": { "run_state": { "const": "blocked" } },
+        "required": ["run_state"]
+      },
+      "then": { "required": ["blocked"] },
+      "else": { "not": { "required": ["blocked"] } }
+    },
+    {
+      "if": {
+        "properties": { "run_state": { "const": "failed" } },
+        "required": ["run_state"]
+      },
+      "then": { "required": ["last_error"] },
+      "else": { "not": { "required": ["last_error"] } }
+    }
+  ]
 }

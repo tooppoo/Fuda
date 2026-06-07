@@ -24,7 +24,7 @@ review-2.json → review_number = 2
 ```
 normalization 成功 → review-N.json を書く
 normalization 失敗 → review-N.json を書かない。review-N.raw.txt のみ保存。
-                     run_state を invalid_agent_output に遷移。
+                     run_state = "failed" + last_error.code = "invalid_reviewer_output" に遷移。
 ```
 
 `review-N.raw.txt` が存在し `review-N.json` が存在しない場合、normalization に失敗した可能性を示す。
@@ -35,7 +35,7 @@ normalization 失敗 → review-N.json を書かない。review-N.raw.txt のみ
 
 `runner_decision` は `findings` と `human_review_required` から runner が導出した制御判断であり、こちらが review 後の状態遷移の正本となる。
 
-v0 では `reviewer_assessment` に `inconclusive` を採用しない。reviewer が判断不能・出力不完全・構造化に失敗した場合は、`review-N.json` を書かずに `run_state = "invalid_agent_output"` に遷移する。
+v0 では `reviewer_assessment` に `inconclusive` を採用しない。reviewer が判断不能・出力不完全・構造化に失敗した場合は、`review-N.json` を書かずに `run_state = "failed"` + `last_error.code = "invalid_reviewer_output"` に遷移する。
 
 ## Runner decision derivation
 
@@ -50,7 +50,7 @@ v0 では `reviewer_assessment` に `inconclusive` を採用しない。reviewer
 | `findings` が `minor` のみ | `ready_with_minor_findings` |
 | `findings` が空 | `pass` |
 
-normalization 失敗時は `runner_decision` をこのファイルに書かず、runner が `run_state = "invalid_agent_output"` に遷移する。
+normalization 失敗時は `runner_decision` をこのファイルに書かず、runner が `run_state = "failed"` + `last_error.code = "invalid_reviewer_output"` に遷移する。
 
 Example — `reviewer_assessment` と `runner_decision` が乖離するケース:
 
@@ -77,7 +77,7 @@ reviewer_assessment = "pass" かつ findings に major が含まれる
 reviewer output の parse / schema validation / normalization に失敗
 → review-N.json を書かない
 → review-N.raw.txt を保存（すでに存在する場合は上書きしない）
-→ run_state = invalid_agent_output に遷移
+→ run_state = "failed" + last_error.code = "invalid_reviewer_output" に遷移
 → require re-review or human confirmation
 ```
 
