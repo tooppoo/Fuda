@@ -37,7 +37,7 @@ Fuda において、次の判断は人間が行う。
 |---|---|
 | **Issue scope** | Issue が扱う範囲・扱わない範囲・scope 変更の可否 |
 | **Blocked questions への回答** | writer agent が計画・実装中に検出した不明点への回答。agent は推測で進まず停止して待つ |
-| **reviewer が要求した人間確認** | reviewer agent が自動判断できないと判定した場合の意思決定（継続・修正・現状承認） |
+| **reviewerによる意思決定要求** | reviewer agent が自動判断できないと判定した場合の意思決定（継続・修正・現状承認） |
 | **Abort / resume / close** | run のライフサイクルは明示的なコマンドで人間が制御する |
 
 ---
