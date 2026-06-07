@@ -44,7 +44,7 @@ Kogoto — a little fussy runner for the space between human judgment and AI exe
 
 [Human-in-the-loop first](./human-in-the-loop-first.md) で定義した Strong HITL は次のように整理できる。
 
-> 人間と AI がインクリメンタルに、ステップバイステップで相互作用する。AI は実作業を担うが、思考・判断・評価については人間と協力する。AI は与えられていない権限を自ら取らない。
+> 人間と AI がインクリメンタルに、ステップバイステップで相互作用する。AI は実作業を担うが、検討・判断・評価については人間と協力する。AI は与えられていない権限を自ら取らない。
 
 `Kogoto` という名前は、この Strong HITL の振る舞いを「小うるさい」という一言で直接表現している。
 

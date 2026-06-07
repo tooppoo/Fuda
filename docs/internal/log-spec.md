@@ -48,7 +48,7 @@ runの状態とメタデータを管理するファイル。スキーマ: [run.s
 {
   "schema_version": 1,
   "run_id": "<run-id>",
-  "repository": "tooppoo/kogoto",
+  "repository": "tooppoo/Kogoto",
   "issue_number": 7,
   "run_state": "reviewing",
   "branch": "kogoto/issue-7",
@@ -184,14 +184,14 @@ close後に残すsummary。スキーマ: [run-summary.schema.json](../../schemas
 ```json
 {
   "schema_version": 1,
-  "repository": "tooppoo/kogoto",
+  "repository": "tooppoo/Kogoto",
   "issue_number": 7,
   "run_id": "<run-id>",
   "branch": "kogoto/issue-7",
   "worktree": "/home/user/src/kogoto-worktrees/kogoto-issue-7",
   "pull_request": {
     "number": 12,
-    "url": "https://github.com/tooppoo/kogoto/pull/12"
+    "url": "https://github.com/tooppoo/Kogoto/pull/12"
   },
   "terminal_state": "succeeded",
   "completion_result": "pr_created",

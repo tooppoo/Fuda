@@ -189,13 +189,19 @@ kogoto close 7
 
 ---
 
+## Fuda から Kogoto への移行
+
+旧 Fuda からの移行については [migration.md](./migration.md) を参照。
+
+---
+
 ## 設定ファイル
 
 ### `~/.config/kogoto/config.toml`
 
 ```toml
 [github]
-repo = "tooppoo/kogoto"
+repo = "tooppoo/Kogoto"
 default_base = "main"
 
 [workspace]
