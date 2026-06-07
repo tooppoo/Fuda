@@ -38,6 +38,7 @@ Fuda において、次の判断は人間が行う。
 | **Issue scope** | Issue が扱う範囲・扱わない範囲・scope 変更の可否 |
 | **Blocked questions への回答** | writer agent が計画・実装中に検出した不明点への回答。agent は推測で進まず停止して待つ |
 | **reviewerによる意思決定要求** | reviewer agent が自動判断できないと判定した場合の意思決定（継続・修正・現状承認） |
+| **Merge と release control** | Fuda は PR を作成するが、merge・main branch への反映は行わない |
 | **Abort / resume / close** | run のライフサイクルは明示的なコマンドで人間が制御する |
 
 ---
@@ -73,7 +74,7 @@ run_state: blocked
 
 ### 自動判断が困難な場合の停止
 
-reviewer agent が自動判断できないと判定した場合、run は停止する。自動的に続行しない。人間が方針を決定してから再開する。
+reviewer agent が人間判断を必要とする論点を検出した場合、run は `human_review_required` として停止する。自動的に続行しない。人間が方針を決定してから再開する。
 
 参照: [Run State Machine](../internal/state-machine.md)
 

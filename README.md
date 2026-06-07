@@ -19,11 +19,11 @@ This does not mean humans merely approve at the end. Human-in-the-loop first mea
 Fuda distinguishes between two kinds of human-in-the-loop:
 
 - **Weak HITL**: AI executes most of the work; the human approves at key gates. The human is a gatekeeper, confirming AI results after the fact.
-- **Strong HITL**: Human and AI interact incrementally, step by step. AI handles execution; humans and AI collaborate on thinking, judgment, and evaluation. AI does not assume authority it was not given.
+- **Strong HITL**: Human and AI interact incrementally, step by step. AI handles execution; humans and AI collaborate on analysis, judgment, and evaluation. AI does not assume authority it was not given.
 
 Fuda aims for **strong HITL**.
 
-In Fuda, agents may reason, propose, revise, and flag uncertainty — but they do not make unilateral decisions. When a decision point is unclear or significant, the run stops and asks the human. Fuda keeps judgment in human hands not because AI cannot guess, but because judgment is better formed through human-agent interaction than through automated substitution.
+In Fuda, agents may analyze, propose, revise, and flag uncertainty — but they do not make unilateral decisions. When a decision point is unclear or significant, the run stops and asks the human. Fuda keeps judgment in human hands not because AI cannot guess, but because judgment is better formed through human-agent interaction than through automated substitution.
 
 ### What humans control
 
