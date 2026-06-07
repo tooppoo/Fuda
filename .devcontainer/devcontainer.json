@@ -1,5 +1,5 @@
 {
-  "name": "Fuda",
+  "name": "Kogoto",
   "image": "mcr.microsoft.com/devcontainers/go:1.26-bookworm",
   "features": {
     "ghcr.io/devcontainers/features/github-cli:1.1.0": {},

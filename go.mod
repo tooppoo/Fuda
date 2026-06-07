@@ -1,4 +1,4 @@
-module github.com/tooppoo/Fuda
+module github.com/tooppoo/Kogoto
 
 go 1.26
 

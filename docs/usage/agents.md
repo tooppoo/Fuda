@@ -2,7 +2,7 @@
 
 ## 概要
 
-Fudaは writer と reviewer の2種類のagent roleを持つ。
+Kogotoは writer と reviewer の2種類のagent roleを持つ。
 v0では `claude` のみを実行可能なagent backendとして扱う。
 `codex` は将来対応予定の既知backendとして認識するが、v0では設定・実行できない。
 
@@ -98,14 +98,14 @@ v0.1の最小到達点は `claude` writer + `claude` reviewer。
 ### 設定
 
 ```bash
-fuda writer claude
-fuda reviewer claude
+kogoto writer claude
+kogoto reviewer claude
 ```
 
 reviewer でsubagentを指定する場合:
 
 ```bash
-fuda reviewer claude code-reviewer
+kogoto reviewer claude code-reviewer
 ```
 
 ### 設定ファイル
@@ -121,7 +121,7 @@ subagent = "code-reviewer"  # 省略可
 
 ### Subagentの指定
 
-`fuda reviewer claude <reviewer-name>` では、Claude Code側のreviewer subagent名を指定できる。
+`kogoto reviewer claude <reviewer-name>` では、Claude Code側のreviewer subagent名を指定できる。
 
 指定したsubagentがレビューを担当する。省略した場合はデフォルトのClaude Codeがレビューを行う。
 
@@ -147,15 +147,15 @@ Codex対応は以下を安定して扱えることを確認したうえで段階
 ### 設定（将来）
 
 ```bash
-fuda writer codex
-fuda reviewer codex
+kogoto writer codex
+kogoto reviewer codex
 ```
 
 ---
 
 ## Agent 非依存の設計方針
 
-Fudaは特定のagentに依存しない設計を採用している。
+Kogotoは特定のagentに依存しない設計を採用している。
 
 * `internal/agent` パッケージがwriter / reviewer roleをインタフェースとして定義する
 * 各agent種別（Claude, Codex等）はそのインタフェースの実装として追加する

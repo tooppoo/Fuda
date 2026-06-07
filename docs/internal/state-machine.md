@@ -56,7 +56,7 @@ failed
 | terminated | `aborted`, `failed` |
 
 `pr_created` は、PR 作成済みで `run.json.pull_request` に PR number / URL が記録済みの状態を表す。  
-`succeeded` は、Fuda Run が正常終了し、必要な終了処理が完了した状態を表す。GitHub source issue が close 済みであることを意味しない。
+`succeeded` は、Kogoto Run が正常終了し、必要な終了処理が完了した状態を表す。GitHub source issue が close 済みであることを意味しない。
 
 ---
 
@@ -144,7 +144,7 @@ stateDiagram-v2
 | `reviewing` | `runner_decision = human_review_required` | `human_review_required` | 自動進行停止 |
 | `fixing` | fix completed | `testing` | 再検証 |
 | `fixing` | writer cannot resolve | `blocked` | blocking question あり |
-| `pr_created` | run summary written and finalization completed | `succeeded` | Fuda Run の正常終了 |
+| `pr_created` | run summary written and finalization completed | `succeeded` | Kogoto Run の正常終了 |
 | any non-terminal | user abort | `aborted` | 明示中断 |
 | any non-terminal | unrecoverable runner / environment error | `failed` | runner / environment failure |
 | `blocked` | human resolved questions | `planning` or `writing` | blocked reason に依存 |
@@ -276,7 +276,7 @@ run-summary.json.pull_request      = { number: ..., url: ... }
 | `loading_issue` | yes | Re-fetch issue data |
 | `preparing_worktree` | conditional | Validate branch/worktree before continuing |
 | `planning` | conditional | Validate existing `plan.json`; otherwise re-plan only by explicit command |
-| `blocked` | no | Require human resolution via issue comment or `fuda answer` |
+| `blocked` | no | Require human resolution via issue comment or `kogoto answer` |
 | `writing` | conditional | Inspect worktree and continue only if safe |
 | `testing` | yes | Re-run tests |
 | `committing` | conditional | Check whether commit already exists before retrying |
