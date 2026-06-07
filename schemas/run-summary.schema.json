@@ -72,7 +72,11 @@
         "aborted_by_user",
         "failed_due_to_invalid_state",
         "failed_due_to_agent_error",
-        "failed_due_to_git_error"
+        "failed_due_to_git_error",
+        "failed_due_to_github_error",
+        "failed_due_to_verification_error",
+        "failed_due_to_runner_error",
+        "failed_due_to_environment_error"
       ]
     },
     "started_at": {
@@ -108,16 +112,85 @@
     },
     "forced": {
       "type": "boolean"
+    },
+    "failure_summary": {
+      "type": "object",
+      "required": ["code", "phase", "message", "recoverability", "occurred_at"],
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "type": "string",
+          "enum": [
+            "github_auth_failed",
+            "issue_not_found",
+            "issue_closed",
+            "main_update_failed",
+            "worktree_create_failed",
+            "branch_already_exists",
+            "worktree_path_already_exists",
+            "writer_launch_failed",
+            "invalid_writer_output",
+            "verification_failed",
+            "nothing_to_commit",
+            "commit_failed",
+            "reviewer_launch_failed",
+            "invalid_reviewer_output",
+            "push_failed",
+            "pr_create_failed",
+            "runner_error",
+            "environment_error"
+          ]
+        },
+        "phase": {
+          "type": "string",
+          "minLength": 1
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        },
+        "recoverability": {
+          "type": "string",
+          "minLength": 1
+        },
+        "occurred_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "artifact_ref": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "pattern": "^(?!/)(?![A-Za-z]:)(?!.*\\\\)(?!.*(^|/)\\.\\./|/\\.\\.$|\\.\\.$).+$"
+        }
+      }
     }
   },
-  "if": {
-    "properties": { "completion_result": { "const": "pr_created" } },
-    "required": ["completion_result"]
-  },
-  "then": {
-    "required": ["pull_request"]
-  },
-  "else": {
-    "not": { "required": ["pull_request"] }
-  }
+  "allOf": [
+    {
+      "if": {
+        "properties": { "completion_result": { "const": "pr_created" } },
+        "required": ["completion_result"]
+      },
+      "then": {
+        "required": ["pull_request"]
+      },
+      "else": {
+        "not": { "required": ["pull_request"] }
+      }
+    },
+    {
+      "if": {
+        "properties": { "terminal_state": { "const": "failed" } },
+        "required": ["terminal_state"]
+      },
+      "then": {
+        "required": ["failure_summary"]
+      },
+      "else": {
+        "not": { "required": ["failure_summary"] }
+      }
+    }
+  ]
 }
