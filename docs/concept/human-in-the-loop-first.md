@@ -25,7 +25,7 @@ Fuda は `Human-in-the-loop` を二種類に区別する。
 
 Fuda が目指すのは **強い HITL** である。
 
-強い HITL において、agent は推測・整理・提案を行うことができる。しかし独断はしない。判断が必要な場面では run を停止し、人間に問いかける。Fuda が判断を人間の手に残すのは、AI が推測できないからではなく、人間の意図こそが正解の基準であるからだ。
+強い HITL において、agent は推測・整理・提案を行うことができる。しかし独断はしない。判断が必要な場面では run を停止し、人間に問いかける。Fuda が判断を人間の手に残すのは、AI が推測できないからではない。自動化や AI による代替よりも、人間と agent の相互作用を通じて判断を形成することに価値を置くからだ。
 
 ---
 
@@ -49,7 +49,7 @@ Writer agent と reviewer agent は、開発ループの反復作業を担う。
 
 - Writer agent: Issue scope に従い、実装・修正・ドキュメント作成を行う
 - Reviewer agent: diff・テスト結果・受け入れ基準を検査する
-- 両 agent は、推論過程と不確実性を報告する。隠蔽・過信はしない
+- 両 agent は、検討内容の要約・判断根拠・不確実性を報告する。未確定事項を隠蔽したり、推測を確定判断として提示したりしない
 
 Agent は人間の判断を支援する。置き換えない。
 
@@ -86,12 +86,7 @@ run_state: human_review_required
 
 ### Verification retry 上限
 
-検証失敗は修正サイクルを起動するが、retry 回数には上限がある。上限に達した場合、run は `failed` に遷移し停止する。Fuda は無制限の自己修正を許容しない。
-
-```
-verification failed → fixing → re-testing
-retry_count >= 2 → failed (stop)
-```
+検証が不安定な状態のまま自動で走り続けることより、立ち止まることに価値を置く。修正サイクルには上限があり、上限に達した場合は run が停止する。Fuda は無制限の自己修正を許容しない。
 
 参照: [Run State Machine](../internal/state-machine.md)
 
@@ -152,13 +147,13 @@ ADR が不要な判断の例:
 
 Fuda は、AI が自律的に Issue を消化し続ける自律開発 platform を目指さない。
 
-Symphony のような完全自律 agent platform は、AI が判断から実行・release まで担うことを前提とする。Fuda はその反対の軸に位置する。
+自律実行を重視する agent runner や orchestration tool は、作業の継続実行や自動化に重点を置く。Fuda はその方向とは異なり、個々の Issue に対する人間・agent の段階的相互作用と判断記録を中心に置く。
 
-Fuda の差別化軸:
+Fuda の設計の軸:
 
 - 完全自律ではなく、人間との協調を設計の中心に置く
 - 個々の Issue を明示的に制御された単位として扱う
 - 人間と agent が step-by-step に相互作用し、その過程を記録する
-- AI の実行速度より、人間の意図への忠実さを優先する
+- AI の実行速度より、人間と agent の相互作用を通じた段階的な判断形成を優先する
 
 Fuda が提供するのは、AI が速く動くための runway ではなく、人間が制御を保ちながら AI の力を借りるための runner である。

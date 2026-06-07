@@ -23,7 +23,7 @@ Fuda distinguishes between two kinds of human-in-the-loop:
 
 Fuda aims for **strong HITL**.
 
-In Fuda, agents may reason, propose, revise, and flag uncertainty — but they do not make unilateral decisions. When a decision point is unclear or significant, the run stops and asks the human. Fuda keeps judgment in human hands not because AI cannot guess, but because the human's intent is what matters.
+In Fuda, agents may reason, propose, revise, and flag uncertainty — but they do not make unilateral decisions. When a decision point is unclear or significant, the run stops and asks the human. Fuda keeps judgment in human hands not because AI cannot guess, but because judgment is better formed through human-agent interaction than through automated substitution.
 
 ### What humans control
 
@@ -41,7 +41,7 @@ Writer and reviewer agents handle the repetitive parts of the development loop:
 
 - Writer agents implement, revise, and document according to the Issue scope
 - Reviewer agents inspect diffs, test results, and acceptance criteria
-- Both agents report their reasoning and flag uncertainty — they do not suppress it
+- Both agents report their findings, decision rationale, and uncertainty — they do not treat guesses as settled conclusions
 
 Agents support human judgment. They do not replace it.
 
