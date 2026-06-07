@@ -14,14 +14,6 @@ Fuda のツール名を `Fuda` から `Kogoto` へ変更する方針を整理す
 
 ## 名称の意味づけ
 
-### Fuda とは
-
-`Fuda`（「札」）は、Issue を「作業のラベル・札」として扱う issue-driven workflow に由来する。各 Issue をひとつの「札」と見なし、その札を処理していく動作を指す。
-
-Issue-driven workflow としての表現としては適切だが、ツールのコア・コンセプトが `Strong HITL` として確立された結果、`Fuda` という名称はツールの本質ではなく workflow artifact 側を指す名称になった。
-
-### Kogoto とは
-
 `Kogoto`（「小言」）は「小うるさい」という意味を持つ。これは、Kogoto が目指す Strong HITL の性格を直接表現している。
 
 Kogoto は「少し小うるさい」runner として:
@@ -79,67 +71,6 @@ Awai Project
 ```
 
 `Awai Workflow` は workflow / concept 名、`Kogoto` はその CLI implementation / runner 名として扱う。
-
----
-
-## Rename の影響範囲
-
-rename を実施する際、以下の箇所が影響を受ける。実装 rename は後続 Issue で行う。
-
-### コード・バイナリ
-
-| 対象 | 現在の値 | 変更後 |
-|------|---------|--------|
-| CLI binary name | `fuda` | `kogoto` |
-| cmd ディレクトリ | `cmd/fuda/` | `cmd/kogoto/` |
-| Go module path | `github.com/tooppoo/Fuda` | `github.com/tooppoo/Kogoto` |
-| cobra root `Use` | `"fuda"` | `"kogoto"` |
-| cobra root `Short` | `"...Fuda..."` 表記 | `"...Kogoto..."` 表記 |
-
-### 設定・状態ファイル
-
-| 対象 | 現在の値 | 変更後 |
-|------|---------|--------|
-| config file path | `~/.config/fuda/config.toml` | `~/.config/kogoto/config.toml` |
-| workspace `branch_prefix` | `fuda/issue-` | `kogoto/issue-` |
-| state ディレクトリ | `.fuda/` (想定) | `.kogoto/` |
-
-### GitHub・リポジトリ
-
-| 対象 | 現在の値 | 変更後 |
-|------|---------|--------|
-| GitHub repository name | `tooppoo/Fuda` | `tooppoo/Kogoto` |
-| Go module path (GitHub) | `github.com/tooppoo/Fuda` | `github.com/tooppoo/Kogoto` |
-| release artifact names | `fuda-*` | `kogoto-*` |
-
-### ドキュメント
-
-| 対象 | 内容 |
-|------|------|
-| `README.md` | `Fuda` 表記をすべて `Kogoto` に更新 |
-| `docs/` 配下 | `Fuda` 表記をすべて `Kogoto` に更新 |
-| `schemas/` 配下 | `Fuda` 表記をすべて `Kogoto` に更新 |
-| GitHub Issues / PR 参照 | repository rename 後に更新が必要な箇所を確認 |
-
-### 後方互換性
-
-| 対象 | 検討事項 |
-|------|---------|
-| config file migration | `~/.config/fuda/` → `~/.config/kogoto/` への移行方針 |
-| state file migration | 既存の state を Kogoto が読み込めるか |
-| binary alias | `fuda` コマンドを一定期間 `kogoto` へ転送するか |
-| release migration guide | ユーザー向け移行ガイドの提供 |
-
----
-
-## 後続 Issue
-
-rename の実装は以下の後続 Issue に分割して行う。
-
-- [Issue #44](https://github.com/tooppoo/Fuda/issues/44): 実装: CLI binary name / Go module path の rename
-- [Issue #45](https://github.com/tooppoo/Fuda/issues/45): 実装: config file / state file の rename と後方互換性設計
-- [Issue #46](https://github.com/tooppoo/Fuda/issues/46): ドキュメント: README / docs の `Fuda` → `Kogoto` 表記更新
-- [Issue #47](https://github.com/tooppoo/Fuda/issues/47): 運用: GitHub repository name の rename
 
 ## 関連
 
