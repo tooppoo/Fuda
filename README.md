@@ -31,7 +31,7 @@ Humans retain control over:
 
 - **Issue scope** — what the Issue covers, what it does not cover, and whether the scope should change
 - **Blocked questions** — ambiguous points raised by the writer agent during planning or implementation; Fuda stops and waits for a human answer rather than guessing
-- **`human_review_required`** — cases where the reviewer agent signals that a human must decide before the run continues
+- **Reviewer-requested human confirmation** — cases where the reviewer agent cannot decide automatically and signals that a human must decide before the run continues
 - **Merge and release** — Fuda creates pull requests but does not merge them or push to the main branch
 - **Abort, resume, and close** — the run lifecycle is driven by explicit human commands
 

@@ -37,8 +37,7 @@ Fuda において、次の判断は人間が行う。
 |---|---|
 | **Issue scope** | Issue が扱う範囲・扱わない範囲・scope 変更の可否 |
 | **Blocked questions への回答** | writer agent が計画・実装中に検出した不明点への回答。agent は推測で進まず停止して待つ |
-| **`human_review_required` の確認** | reviewer agent が人間判断を要求した場合の意思決定（継続・修正・現状承認） |
-| **Merge と release control** | Fuda は PR を作成するが、merge・main branch への反映は行わない |
+| **reviewer が要求した人間確認** | reviewer agent が自動判断できないと判定した場合の意思決定（継続・修正・現状承認） |
 | **Abort / resume / close** | run のライフサイクルは明示的なコマンドで人間が制御する |
 
 ---
@@ -72,19 +71,13 @@ run_state: blocked
 
 参照: [Run State Machine](../internal/state-machine.md), [利用シナリオ - blocked フロー](../usage/scenarios.md)
 
-### `human_review_required`
+### 自動判断が困難な場合の停止
 
-reviewer agent が「人間の確認が必要」と判断した場合、run は `human_review_required` 状態で停止する。自動的に続行しない。人間が方針を決定してから再開する。
-
-```
-run_state: human_review_required
-→ human decides: continue as-is / revise / abort
-→ fuda resume → run continues with human decision
-```
+reviewer agent が自動判断できないと判定した場合、run は停止する。自動的に続行しない。人間が方針を決定してから再開する。
 
 参照: [Run State Machine](../internal/state-machine.md)
 
-### Verification retry 上限
+### 不安定時の自動継続を避ける
 
 検証が不安定な状態のまま自動で走り続けることより、立ち止まることに価値を置く。修正サイクルには上限があり、上限に達した場合は run が停止する。Fuda は無制限の自己修正を許容しない。
 
@@ -139,7 +132,7 @@ ADR が不要な判断の例:
 - 局所的な refactor
 - 既存方針に従っただけの実装
 
-> **Note**: ADR のファイル命名規則・テンプレート・保存ディレクトリの確定・作成支援 CLI は、この概念文書の対象外であり、別 Issue で扱う。
+> **Note**: ADR のファイル命名規則・テンプレート・保存ディレクトリの確定・作成支援 CLI は、この概念文書の対象外である。[Issue #43](https://github.com/tooppoo/Fuda/issues/43) で扱う。
 
 ---
 
