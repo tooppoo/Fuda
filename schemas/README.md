@@ -87,6 +87,10 @@ JSON Schema では `"format": "date-time"` を使い、UTC 必須は semantic ru
 - `terminal_state` と `completion_result` の組み合わせ制約
 - `run-summary.json.pull_request` の required / absent 条件
 - `run-summary.json.review_rounds` と `run.json.review_loop.completed_review_rounds` の対応関係
+- `run-summary.json.failure_summary` が `terminal_state = "failed"` の場合のみ存在すること
+- `run-summary.json.completion_result` と `run-summary.json.failure_summary.code` の対応関係
+- `run-summary.json.failure_summary` が `run.json.last_error` から安全に転記されていること
+- `run-summary.json.failure_summary.artifact_ref` が run-local な artifact reference として妥当であること
 - `codex` が known backend だが v0 executable backend ではないこと
 
 ---
@@ -117,6 +121,20 @@ agent の raw output は debugging artifact として扱う。
 | `unsupported_schema_version` | 未知の `schema_version` |
 | `migration_required` | 既知だが現在サポートしていない旧 `schema_version` |
 | `corrupted_run_state` | `run.json` が破損しており resume できない状態 |
+
+### `completion_result` / `failure_summary.code` — 失敗分類の対応
+
+`terminal_state = "failed"` の場合、`completion_result` と `failure_summary.code` は以下の対応を持つ。この対応は semantic validation として扱う。
+
+| `completion_result` | `failure_summary.code` |
+|---|---|
+| `failed_due_to_github_error` | `github_auth_failed`, `issue_not_found`, `issue_closed`, `pr_create_failed` |
+| `failed_due_to_git_error` | `main_update_failed`, `worktree_create_failed`, `commit_failed`, `push_failed` |
+| `failed_due_to_invalid_state` | `branch_already_exists`, `worktree_path_already_exists`, `nothing_to_commit` |
+| `failed_due_to_agent_error` | `writer_launch_failed`, `invalid_writer_output`, `reviewer_launch_failed`, `invalid_reviewer_output` |
+| `failed_due_to_verification_error` | `verification_failed` |
+| `failed_due_to_runner_error` | `runner_error` |
+| `failed_due_to_environment_error` | `environment_error` |
 
 ### `last_error.code` — Run failure codes
 

@@ -107,15 +107,30 @@ Run の各 phase における失敗ケースを以下に定義する。`Run stat
 
 ## `run-summary.json` への失敗原因記録
 
-Run が `failed` / `aborted` で終端した場合、`run-summary.json` に失敗概要を記録する。
+Run が `failed` で終端した場合、`run-summary.json` に失敗概要を `failure_summary` として記録する。
+
+`failure_summary` は `run.json.last_error` から summary 用に安全な情報のみを転記する。
+
+| `run.json.last_error` | `run-summary.json.failure_summary` |
+|---|---|
+| `code` | `code` |
+| `phase` | `phase` |
+| `message` | `message` |
+| `recoverability` | `recoverability` |
+| `occurred_at` | `occurred_at` |
+| `artifact` | `artifact_ref` |
 
 `run-summary.json` には以下を含めない。
 
 - 巨大ログ（詳細 test log など）
 - 詳細 diff
 - 機密情報（token、credential など）
+- agent prompt 全文
+- command output 全文
 
-詳細 log は run artifact として別ファイルに保持する。`run-summary.schema.md` を参照。
+詳細 log は run artifact として別ファイルに保持し、`failure_summary.artifact_ref` で参照する。`run-summary.schema.md` を参照。
+
+`aborted` は失敗ではなく user / policy による中断であるため、`failure_summary` は持たせない。
 
 ---
 
