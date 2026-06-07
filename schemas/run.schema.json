@@ -101,6 +101,18 @@
         }
       }
     },
+    "verification_loop": {
+      "type": "object",
+      "required": ["retry_count"],
+      "additionalProperties": false,
+      "properties": {
+        "retry_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2
+        }
+      }
+    },
     "pull_request": {
       "type": "object",
       "required": ["number", "url"],
@@ -233,6 +245,25 @@
       },
       "then": { "required": ["last_error"] },
       "else": { "not": { "required": ["last_error"] } }
+    },
+    {
+      "if": {
+        "properties": {
+          "run_state": {
+            "enum": [
+              "testing",
+              "committing",
+              "reviewing",
+              "fixing",
+              "human_review_required",
+              "pr_created",
+              "succeeded"
+            ]
+          }
+        },
+        "required": ["run_state"]
+      },
+      "then": { "required": ["verification_loop"] }
     }
   ]
 }

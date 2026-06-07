@@ -83,8 +83,8 @@ stateDiagram-v2
     writing --> failed : invalid_writer_output
 
     testing --> committing : tests pass
-    testing --> fixing : tests fail, auto-fix allowed
-    testing --> blocked : tests fail, cannot continue
+    testing --> fixing : verification failed, retry_count < 2
+    testing --> failed : verification retry limit reached
 
     committing --> reviewing : commit created
     committing --> failed : commit failed
@@ -131,8 +131,8 @@ stateDiagram-v2
 | `writing` | writer cannot continue | `blocked` | blocking question あり |
 | `writing` | writer output invalid | `failed` | `last_error.code = invalid_writer_output`。agent output の parse / validation / normalization failure |
 | `testing` | tests pass | `committing` | commit 前 diff 確認を含む |
-| `testing` | tests fail and auto-fix allowed | `fixing` | writer に戻す |
-| `testing` | tests fail and cannot continue | `blocked` | 人間判断待ち |
+| `testing` | verification failed and `verification_loop.retry_count < 2` | `fixing` | `verification_loop.retry_count` を加算して `run_state = fixing` を永続化してから writer に修正依頼する |
+| `testing` | verification failed and `verification_loop.retry_count >= 2` | `failed` | `last_error.code = verification_failed`。PR 作成せず停止 |
 | `committing` | commit created | `reviewing` | reviewer へ |
 | `committing` | commit failed | `failed` | Git 操作失敗 |
 | `reviewing` | reviewer output parse / schema validation / normalization failed | `failed` | `last_error.code = invalid_reviewer_output`。`review-N.json` は書かない。`review-N.raw.txt` のみ保存 |
@@ -205,6 +205,21 @@ human_review_required
 - `reviewing` から `fixing` に戻る場合、valid な `review-N.json` が書かれた後に `completed_review_rounds = N` へ更新する
 - 次に実行する review number は `completed_review_rounds + 1`
 - `completed_review_rounds <= max_rounds` を満たす
+
+---
+
+## `verification_loop.retry_count`
+
+`verification_loop.retry_count` の詳細な定義は `schemas/run.schema.md` を正とする。
+
+このドキュメントでは、状態遷移に関わるルールのみを記載する。
+
+- 初期値は `0`
+- `testing` → `fixing` 遷移を `run.json` に永続化するタイミングで加算する。writer 呼び出しより前に完了させること
+- write / fix サイクルが新しく始まるたびに `0` にリセットする
+- `review_loop.completed_review_rounds` とは独立して管理する
+- v0 での上限は `2`（設定不可）
+- `verification_loop.retry_count >= 2` で verification がさらに失敗した場合、`testing` → `failed` に遷移する
 
 ---
 
