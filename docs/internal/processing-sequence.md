@@ -19,16 +19,16 @@ fuda resolve 7
 8.  writerにplanを作成させる
 9.  planにblockedがあればIssueに質問コメントを投稿して停止する
 10. writerに作業させる
-11. test / lint / typecheck を実行する
+11. test / lint / typecheck を実行する（verification loop: 失敗時は最大2回までwriterに修正依頼）
 12. 変更をcommitする
 13. reviewerに差分レビューさせる
 14. reviewer出力を正規化してrunner decisionを決める
 15. `blocking` / `major` findingsがあればwriterに修正させる
-16. 修正後にtest / lint / typecheckを再実行する
+16. 修正後にtest / lint / typecheckを再実行する（verification loop: 失敗時は最大2回までwriterに修正依頼）
 17. 修正をcommitする
 18. reviewerに再レビューさせる
 19. `blocking` / `major` findingsがなくなるまで15〜18を繰り返す
-20. findingsがない、または `minor` findingsのみならPRを作成する
+20. verificationが成功済みで、findingsがない、または `minor` findingsのみならPRを作成する
 21. PR URLを表示する
 22. run状態をpr-createdにする
 ```
@@ -65,15 +65,36 @@ sequenceDiagram
     fuda->>writer: write
     writer-->>fuda: changes
     fuda->>worktree: test / lint / typecheck
+
+    alt verification failed (retry_count < 2)
+        fuda->>fuda: increment verification_loop.retry_count, run_state=fixing
+        fuda->>writer: fix (verification retry)
+        writer-->>fuda: changes
+        fuda->>worktree: test / lint / typecheck (retry)
+    else verification retry limit reached
+        fuda-->>user: stop (verification_failed, run_state=failed)
+    end
+
     fuda->>worktree: commit
     fuda->>reviewer: review
     reviewer-->>fuda: review output
     fuda->>fuda: normalize findings
 
     alt blocking or major findings exist
-        fuda->>writer: fix
+        fuda->>fuda: reset verification_loop.retry_count, run_state=fixing
+        fuda->>writer: fix (review)
         writer-->>fuda: changes
         fuda->>worktree: test / lint / typecheck
+
+        alt verification failed (retry_count < 2)
+            fuda->>fuda: increment verification_loop.retry_count, run_state=fixing
+            fuda->>writer: fix (verification retry)
+            writer-->>fuda: changes
+            fuda->>worktree: test / lint / typecheck (retry)
+        else verification retry limit reached
+            fuda-->>user: stop (verification_failed, run_state=failed)
+        end
+
         fuda->>worktree: commit
         fuda->>reviewer: review
         reviewer-->>fuda: no findings
@@ -164,6 +185,39 @@ sequenceDiagram
 
 ---
 
+## Verification Loop
+
+test / lint / typecheck の実行と結果による分岐を **verification loop** として定義する。
+
+verification loop は review loop とは独立している。
+
+- verification 成功（tests pass）: 次のフェーズ（commit）へ進む
+- verification 失敗 and `verification_loop.retry_count < 2`: `retry_count` を加算して `run_state = fixing` を永続化し、writer に修正依頼後、verification を再実行する
+- verification 失敗 and `verification_loop.retry_count >= 2`: PR を作成せず `run_state = failed` で停止する
+
+`retry_count` は write / fix サイクルが新しく始まるたびに `0` にリセットする。v0 での上限は **2** に固定する（設定不可）。
+
+```mermaid
+sequenceDiagram
+    participant fuda
+    participant worktree
+    participant writer
+
+    fuda->>worktree: test / lint / typecheck
+    alt tests pass
+        fuda->>fuda: proceed to commit
+    else tests fail and retry_count < 2
+        fuda->>fuda: increment verification_loop.retry_count, run_state=fixing
+        fuda->>writer: fix (verification retry)
+        writer-->>fuda: changes
+        fuda->>worktree: test / lint / typecheck (retry)
+    else retry_count >= 2
+        fuda->>fuda: run_state = failed (verification_failed)
+    end
+```
+
+---
+
 ## Blocked フロー
 
 writerが不明点を検出した場合のシーケンス:
@@ -241,7 +295,11 @@ fuda/issue-7
 
 ## PR 作成
 
-`blocking` / `major` findingsがなくなったら、FudaはPRを作成する。
+以下の条件をすべて満たした場合にのみ、FudaはPRを作成する。
+
+- verification が成功している（直近の test / lint / typecheck が pass している）
+- `blocking` / `major` findings がない（`minor` findings のみ、またはなし）
+
 `minor` findingsのみが残っている場合もPR作成へ進むが、PR本文とrun summaryに記録する。
 `human_review_required` が空でない場合、v0ではPR作成へ進まず停止する。
 
