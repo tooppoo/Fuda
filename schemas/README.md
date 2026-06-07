@@ -4,7 +4,7 @@
 
 ## 1. Scope
 
-Fuda が永続管理する JSON ファイルと対応スキーマファイルは以下の通り。
+Kogoto が永続管理する JSON ファイルと対応スキーマファイルは以下の通り。
 
 | ファイル | JSON Schema | Semantic rules / Recovery policy |
 |---|---|---|
@@ -13,7 +13,7 @@ Fuda が永続管理する JSON ファイルと対応スキーマファイルは
 | `review-N.json` | [review.schema.json](review.schema.json) | [review.schema.md](review.schema.md) |
 | `run-summary.json` | [run-summary.schema.json](run-summary.schema.json) | [run-summary.schema.md](run-summary.schema.md) |
 
-また、以下の raw output ファイルは debugging artifact であり、Fuda-managed persisted JSON ではない。JSON Schema validation の対象外とする。
+また、以下の raw output ファイルは debugging artifact であり、Kogoto-managed persisted JSON ではない。JSON Schema validation の対象外とする。
 
 ```
 plan.raw.txt
@@ -25,7 +25,7 @@ review-2.raw.txt
 
 ## 2. Common Policy
 
-全 Fuda-managed persisted JSON に共通して適用される方針。
+全 Kogoto-managed persisted JSON に共通して適用される方針。
 
 ### 2.1 JSON Schema draft
 
@@ -35,7 +35,7 @@ Go 用 validator ライブラリ選定、atomic write、migration handling、sta
 
 ### 2.2 `schema_version`
 
-すべての Fuda-managed persisted JSON は `schema_version` を required field として持つ。
+すべての Kogoto-managed persisted JSON は `schema_version` を required field として持つ。
 
 ```json
 { "schema_version": 1 }
@@ -48,7 +48,7 @@ Go 用 validator ライブラリ選定、atomic write、migration handling、sta
 
 ### 2.3 Unknown fields
 
-Fuda-managed persisted JSON では unknown field を原則拒否する。
+Kogoto-managed persisted JSON では unknown field を原則拒否する。
 
 ```json
 "additionalProperties": false
@@ -104,7 +104,7 @@ agent の raw output は debugging artifact として扱う。
 | `plan.raw.txt` | `plan.json` |
 | `review-N.raw.txt` | `review-N.json` |
 
-- raw output は Fuda-managed persisted JSON ではなく、schema validation の対象ではない
+- raw output は Kogoto-managed persisted JSON ではなく、schema validation の対象ではない
 - raw output だけが存在し対応 `.json` が存在しない場合、parse / validation / normalization に失敗した可能性を示す
 - corruption / invalid output の調査に必要な場合は既存 raw output を削除しない
 
@@ -147,8 +147,8 @@ agent の raw output は debugging artifact として扱う。
 | `issue_closed` | `loading_issue` | Issue が closed |
 | `main_update_failed` | `preparing_worktree` | main ブランチ更新失敗 |
 | `worktree_create_failed` | `preparing_worktree` | worktree 作成失敗 |
-| `branch_already_exists` | `preparing_worktree` | branch が既存（Fuda 管理 run 不明） |
-| `worktree_path_already_exists` | `preparing_worktree` | worktree path が既存（Fuda 管理 run 不明） |
+| `branch_already_exists` | `preparing_worktree` | branch が既存（Kogoto 管理 run 不明） |
+| `worktree_path_already_exists` | `preparing_worktree` | worktree path が既存（Kogoto 管理 run 不明） |
 | `writer_launch_failed` | `planning` / `writing` | writer agent 起動失敗 |
 | `invalid_writer_output` | `planning` / `writing` | writer 出力が不正。`plan.raw.txt` のみ保存、`plan.json` は書かれない |
 | `verification_failed` | `testing` | test / lint / typecheck 失敗（retry 上限到達後） |
@@ -190,7 +190,7 @@ JSON ではあるがスキーマに合わない場合:
 - [ ] `schemas/plan.schema.json` が定義されている
 - [ ] `schemas/review.schema.json` が定義されている
 - [ ] `schemas/run-summary.schema.json` が定義されている
-- [ ] すべての Fuda-managed persisted JSON に `schema_version` が required として定義されている
+- [ ] すべての Kogoto-managed persisted JSON に `schema_version` が required として定義されている
 - [ ] `schema_version` は integer `const: 1` として定義されている
 - [ ] nested object を含め、unknown field を原則拒否する方針が明記されている
 - [ ] `status` という汎用フィールド名を使わず、`run_state` / `planning_result` / `reviewer_assessment` / `runner_decision` / `terminal_state` / `completion_result` に分離されている
@@ -203,7 +203,7 @@ JSON ではあるがスキーマに合わない場合:
 - [ ] `run-summary.json.pull_request` の required / absent 条件が明記されている
 - [ ] `run-summary.json.review_rounds` が `run.json.review_loop.completed_review_rounds` の終端時点の値であることが明記されている
 - [ ] `terminal_state` と `completion_result` の対応表が明記されている
-- [ ] raw output が Fuda-managed persisted JSON ではなく debugging artifact であることが明記されている
+- [ ] raw output が Kogoto-managed persisted JSON ではなく debugging artifact であることが明記されている
 - [ ] JSON parse error の扱いが明記されている
 - [ ] schema validation error の扱いが明記されている
 - [ ] corrupted file の退避・停止・再開可否がファイルごとに明記されている

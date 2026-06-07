@@ -2,20 +2,20 @@
 
 ## 概要
 
-Fudaは `fuda` コマンドを通じて操作する。
+Kogotoは `kogoto` コマンドを通じて操作する。
 
 ```
-fuda <subcommand> [arguments] [options]
+kogoto <subcommand> [arguments] [options]
 ```
 
 ---
 
-## `fuda setup`
+## `kogoto setup`
 
 初期設定を行う。
 
 ```bash
-fuda setup
+kogoto setup
 ```
 
 設定する内容:
@@ -27,16 +27,16 @@ fuda setup
 * worktree rootの設定
 * test / lint / typecheck コマンドの設定
 
-設定ファイルの保存先: `~/.config/fuda/config.toml`
+設定ファイルの保存先: `~/.config/kogoto/config.toml`
 
 ---
 
-## `fuda writer`
+## `kogoto writer`
 
 writer agentを設定する。
 
 ```bash
-fuda writer claude
+kogoto writer claude
 ```
 
 writerは、Issueに基づいて変更を書くagentである。
@@ -52,36 +52,36 @@ v0では実行可能なwriter agentは `claude` のみ。
 
 ---
 
-## `fuda reviewer`
+## `kogoto reviewer`
 
 reviewer agentを設定する。
 
 ```bash
-fuda reviewer claude
-fuda reviewer claude <reviewer-name>
+kogoto reviewer claude
+kogoto reviewer claude <reviewer-name>
 ```
 
 reviewerは、writerの変更を検査するagentである。
 
 | 形式 | 説明 |
 |------|------|
-| `fuda reviewer claude` | Claude Codeをreviewer agentに設定する |
-| `fuda reviewer claude <reviewer-name>` | Claude Code側のreviewer subagent名を指定する |
+| `kogoto reviewer claude` | Claude Codeをreviewer agentに設定する |
+| `kogoto reviewer claude <reviewer-name>` | Claude Code側のreviewer subagent名を指定する |
 
 例:
 
 ```bash
-fuda reviewer claude code-reviewer
+kogoto reviewer claude code-reviewer
 ```
 
 ---
 
-## `fuda resolve <issue-number>`
+## `kogoto resolve <issue-number>`
 
 Issue解決のためのrunを開始する。
 
 ```bash
-fuda resolve 7
+kogoto resolve 7
 ```
 
 実行内容:
@@ -103,29 +103,29 @@ v0では `minor` 指摘だけでは修正ループを起動しない。
 
 ---
 
-## `fuda status`
+## `kogoto status`
 
 runの状態を表示する。
 
 ```bash
-fuda status
-fuda status 7
+kogoto status
+kogoto status 7
 ```
 
 | 形式 | 説明 |
 |------|------|
-| `fuda status` | 現在進行中のrunの状態を表示する |
-| `fuda status 7` | Issue #7 のrunの状態を表示する |
+| `kogoto status` | 現在進行中のrunの状態を表示する |
+| `kogoto status 7` | Issue #7 のrunの状態を表示する |
 
 ---
 
-## `fuda answer <issue-number>`
+## `kogoto answer <issue-number>`
 
 blocked状態になったIssueに対して、ユーザー回答をIssueコメントとして投稿する。
 
 ```bash
-fuda answer 7
-fuda answer 7 --body "回答本文"
+kogoto answer 7
+kogoto answer 7 --body "回答本文"
 ```
 
 | オプション | 説明 |
@@ -134,36 +134,36 @@ fuda answer 7 --body "回答本文"
 
 ---
 
-## `fuda resume <issue-number>`
+## `kogoto resume <issue-number>`
 
 中断中のrunを再開する。
 
 ```bash
-fuda resume 7
+kogoto resume 7
 ```
 
 `answer` 後の再開や、手動で中断したrunを再開する場合に使う。
 
 ---
 
-## `fuda abort <issue-number>`
+## `kogoto abort <issue-number>`
 
 runを中止する。
 
 ```bash
-fuda abort 7
+kogoto abort 7
 ```
 
 v0では、`abort` はworktree・branch・logを削除しない。調査可能性を残すため、状態を `aborted` にするだけとする。
 
 ---
 
-## `fuda close <issue-number>`
+## `kogoto close <issue-number>`
 
 作業完了後の終了処理を行う。
 
 ```bash
-fuda close 7
+kogoto close 7
 ```
 
 実行内容:
@@ -178,29 +178,29 @@ fuda close 7
 
 ### 安全条件
 
-以下の場合、`fuda close` は停止する:
+以下の場合、`kogoto close` は停止する:
 
 * 対応PRが存在しない
 * 対応PRが未mergeである
 * worktreeに未commit変更がある
 * worktree branchに未push commitがある
 * run状態が不明である
-* 対象worktreeがFuda管理下であることを確認できない
+* 対象worktreeがKogoto管理下であることを確認できない
 
 ---
 
 ## 設定ファイル
 
-### `~/.config/fuda/config.toml`
+### `~/.config/kogoto/config.toml`
 
 ```toml
 [github]
-repo = "tooppoo/fuda"
+repo = "tooppoo/kogoto"
 default_base = "main"
 
 [workspace]
-root = "~/src/fuda-worktrees"
-branch_prefix = "fuda/issue-"
+root = "~/src/kogoto-worktrees"
+branch_prefix = "kogoto/issue-"
 worktree_name_template = "{repo}-issue-{issue_number}"
 
 [agents.writer]

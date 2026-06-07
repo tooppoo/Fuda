@@ -1,44 +1,44 @@
 # Human-in-the-loop first
 
-Fuda のコア・コンセプトである `Human-in-the-loop first` の詳細を定義する。
+Kogoto のコア・コンセプトである `Human-in-the-loop first` の詳細を定義する。
 
 ---
 
 ## 概要
 
-Fuda は `Human-in-the-loop first` を第一原理として設計されている。
+Kogoto は `Human-in-the-loop first` を第一原理として設計されている。
 
 これは「最後に人間が承認する」という意味ではない。人間が scope・判断・方向性を、すべての重要なステップにおいて保持し続けることを意味する。
 
-Fuda は、AIに作業を完全委任するための自律開発ツールではない。開発ループの反復部分を自動化しつつ、scope・判断・レビュー・release control を人間の手元に残すことを目的とする。
+Kogoto は、AIに作業を完全委任するための自律開発ツールではない。開発ループの反復部分を自動化しつつ、scope・判断・レビュー・release control を人間の手元に残すことを目的とする。
 
 ---
 
 ## 弱い HITL と強い HITL
 
-Fuda は `Human-in-the-loop` を二種類に区別する。
+Kogoto は `Human-in-the-loop` を二種類に区別する。
 
 | 種類 | 説明 |
 |---|---|
 | **弱い HITL** | AI が大部分の作業を実行し、人間は要所で承認するだけ。人間は gatekeeper として配置され、AI の実行結果を事後確認する |
 | **強い HITL** | 人間と AI がインクリメンタルに、ステップバイステップで相互作用する。AI は実作業を担うが、思考・判断・評価については人間と協力する。AI は与えられていない権限を自ら取らない |
 
-Fuda が目指すのは **強い HITL** である。
+Kogoto が目指すのは **強い HITL** である。
 
-強い HITL において、agent は推測・整理・提案を行うことができる。しかし独断はしない。判断が必要な場面では run を停止し、人間に問いかける。Fuda が判断を人間の手に残すのは、AI が推測できないからではない。自動化や AI による代替よりも、人間と agent の相互作用を通じて判断を形成することに価値を置くからだ。
+強い HITL において、agent は推測・整理・提案を行うことができる。しかし独断はしない。判断が必要な場面では run を停止し、人間に問いかける。Kogoto が判断を人間の手に残すのは、AI が推測できないからではない。自動化や AI による代替よりも、人間と agent の相互作用を通じて判断を形成することに価値を置くからだ。
 
 ---
 
 ## 人間が保持する判断領域
 
-Fuda において、次の判断は人間が行う。
+Kogoto において、次の判断は人間が行う。
 
 | 領域 | 説明 |
 |---|---|
 | **Issue scope** | Issue が扱う範囲・扱わない範囲・scope 変更の可否 |
 | **Blocked questions への回答** | writer agent が計画・実装中に検出した不明点への回答。agent は推測で進まず停止して待つ |
 | **reviewerによる意思決定要求** | reviewer agent が自動判断できないと判定した場合の意思決定（継続・修正・現状承認） |
-| **Merge と release control** | Fuda は PR を作成するが、merge・main branch への反映は行わない |
+| **Merge と release control** | Kogoto は PR を作成するが、merge・main branch への反映は行わない |
 | **Abort / resume / close** | run のライフサイクルは明示的なコマンドで人間が制御する |
 
 ---
@@ -57,17 +57,17 @@ Agent は人間の判断を支援する。置き換えない。
 
 ## MVP v0 との接続
 
-`Human-in-the-loop first` は Fuda に後付けされた安全装置ではなく、設計の第一原理である。MVP v0 の次の仕様がこれを直接表している。
+`Human-in-the-loop first` は Kogoto に後付けされた安全装置ではなく、設計の第一原理である。MVP v0 の次の仕様がこれを直接表している。
 
 ### Blocked flow
 
-writer agent が計画・実装中に不明点を検出した場合、run は停止する。Fuda は Issue に質問コメントを投稿し、人間の回答を待つ。agent は推測で先に進まない。
+writer agent が計画・実装中に不明点を検出した場合、run は停止する。Kogoto は Issue に質問コメントを投稿し、人間の回答を待つ。agent は推測で先に進まない。
 
 ```
 run_state: blocked
-→ Fuda posts question to Issue
-→ human answers via fuda answer / Issue comment
-→ fuda resume → run continues
+→ Kogoto posts question to Issue
+→ human answers via kogoto answer / Issue comment
+→ kogoto resume → run continues
 ```
 
 参照: [Run State Machine](../internal/state-machine.md), [利用シナリオ - blocked フロー](../usage/scenarios.md)
@@ -80,25 +80,25 @@ reviewer agent が人間判断を必要とする論点を検出した場合、ru
 
 ### 不安定時の自動継続を避ける
 
-検証が不安定な状態のまま自動で走り続けることより、立ち止まることに価値を置く。修正サイクルには上限があり、上限に達した場合は run が停止する。Fuda は無制限の自己修正を許容しない。
+検証が不安定な状態のまま自動で走り続けることより、立ち止まることに価値を置く。修正サイクルには上限があり、上限に達した場合は run が停止する。Kogoto は無制限の自己修正を許容しない。
 
 参照: [Run State Machine](../internal/state-machine.md)
 
 ### PR merge・main branch 直接 push を行わない
 
-Fuda は PR を作成するが、merge は行わない。main branch への直接 push も行わない。merge・release の判断と実行は人間が担う。
+Kogoto は PR を作成するが、merge は行わない。main branch への直接 push も行わない。merge・release の判断と実行は人間が担う。
 
 ### 明示的な close と cleanup
 
-run 完了後の後片付け（Issue close, worktree 削除, summary 保存）は、`fuda close` という明示的なコマンドで行う。Fuda は自動で cleanup を実行しない。
+run 完了後の後片付け（Issue close, worktree 削除, summary 保存）は、`kogoto close` という明示的なコマンドで行う。Kogoto は自動で cleanup を実行しない。
 
 ---
 
 ## 強い HITL と知識の蓄積
 
-強い HITL は、人間と agent の相互作用を一過性にしない。Fuda では、相互作用の過程を記録し、後続の判断資源として蓄積することを方針とする。
+強い HITL は、人間と agent の相互作用を一過性にしない。Kogoto では、相互作用の過程を記録し、後続の判断資源として蓄積することを方針とする。
 
-Fuda における知識の流れは次のように整理する。
+Kogoto における知識の流れは次のように整理する。
 
 ```
 判断過程: Issue comments
@@ -139,15 +139,15 @@ ADR が不要な判断の例:
 
 ## 自律 agent platform との差別化
 
-Fuda は、AI が自律的に Issue を消化し続ける自律開発 platform を目指さない。
+Kogoto は、AI が自律的に Issue を消化し続ける自律開発 platform を目指さない。
 
-自律実行を重視する agent runner や orchestration tool は、作業の継続実行や自動化に重点を置く。Fuda はその方向とは異なり、個々の Issue に対する人間・agent の段階的相互作用と判断記録を中心に置く。
+自律実行を重視する agent runner や orchestration tool は、作業の継続実行や自動化に重点を置く。Kogoto はその方向とは異なり、個々の Issue に対する人間・agent の段階的相互作用と判断記録を中心に置く。
 
-Fuda の設計の軸:
+Kogoto の設計の軸:
 
 - 完全自律ではなく、人間との協調を設計の中心に置く
 - 個々の Issue を明示的に制御された単位として扱う
 - 人間と agent が step-by-step に相互作用し、その過程を記録する
 - AI の実行速度より、人間と agent の相互作用を通じた段階的な判断形成を優先する
 
-Fuda が提供するのは、AI が速く動くための runway ではなく、人間が制御を保ちながら AI の力を借りるための runner である。
+Kogoto が提供するのは、AI が速く動くための runway ではなく、人間が制御を保ちながら AI の力を借りるための runner である。

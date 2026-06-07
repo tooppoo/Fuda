@@ -72,6 +72,16 @@ Awai Project
 
 `Awai Workflow` は workflow / concept 名、`Kogoto` はその CLI implementation / runner 名として扱う。
 
+## 後方互換性方針
+
+v0 はリリース前であり、実際のユーザーデータは存在しない。そのため、config file・state file・binary 名の変更に対する移行処理は v0 では提供しない。
+
+- `~/.config/fuda/` が存在する場合、自動移行しない。手動で移行するか、削除して再設定する。
+- `.fuda/` の既存 state は `.kogoto/` へ自動移行しない。
+- `fuda` binary alias（`kogoto` へのリダイレクト）は v0 では提供しない。
+
+正式リリース（v1 以降）でユーザーが存在する時点で移行が必要になった場合は、その時点で別 Issue として設計する。
+
 ## 関連
 
 - [Human-in-the-loop first](./human-in-the-loop-first.md) — Kogoto のコアコンセプト

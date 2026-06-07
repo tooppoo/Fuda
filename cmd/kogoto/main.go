@@ -10,21 +10,21 @@ import (
 const version = "0.0.0-dev"
 
 var placeholders = []struct{ use, short string }{
-	{"setup", "Prepare a Fuda run for a GitHub Issue"},
-	{"writer", "Run the writer agent on the current Fuda"},
-	{"reviewer", "Run the reviewer agent on the current Fuda"},
-	{"resolve", "Mark the current Fuda as resolved"},
-	{"status", "Show the status of the current Fuda"},
+	{"setup", "Start a Kogoto run for a GitHub Issue"},
+	{"writer", "Run the writer agent on the current run"},
+	{"reviewer", "Run the reviewer agent on the current run"},
+	{"resolve", "Mark the current run as resolved"},
+	{"status", "Show the status of the current run"},
 	{"answer", "Provide a human answer to a blocked question"},
-	{"resume", "Resume a paused Fuda run"},
-	{"abort", "Abort the current Fuda run"},
-	{"close", "Close a completed Fuda run"},
+	{"resume", "Resume a paused run"},
+	{"abort", "Abort the current run"},
+	{"close", "Close a completed run"},
 }
 
 func main() {
 	root := &cobra.Command{
-		Use:     "fuda",
-		Short:   "Human-controlled AI handoff for issue-driven development",
+		Use:     "kogoto",
+		Short:   "Human-in-the-loop-first AI runner for issue-driven development",
 		Version: version,
 	}
 
