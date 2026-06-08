@@ -133,7 +133,7 @@ ADR が不要な判断の例:
 - 局所的な refactor
 - 既存方針に従っただけの実装
 
-> **Note**: ADR の workflow 上の扱い・save strategy・candidate selection の詳細は [docs/usage/adr.md](../usage/adr.md) を参照（[Issue #43](https://github.com/tooppoo/Kogoto/issues/43)）。この概念文書では ADR の役割・意義を中心に記述し、実装方針の詳細はカバーしない。
+> **Note**: Kogoto における ADR の位置づけと利用方法は [docs/usage/adr.md](../usage/adr.md) を参照。この概念文書では ADR の役割・意義を中心に記述し、利用詳細はカバーしない。
 
 ---
 

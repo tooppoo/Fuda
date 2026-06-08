@@ -18,7 +18,7 @@ Kogoto が Issue を処理する過程で、次の操作を行う対象となる
 
 保存先・フォーマット・命名規則はユーザーのプロジェクトに依存する。Kogoto は save strategy に従って処理するが、保存先は Kogoto 自身のリポジトリではない。
 
-> ユーザー ADR の candidate extraction / selection / save strategy の詳細は [Issue #51](https://github.com/tooppoo/Kogoto/issues/51) で扱う。
+> ユーザー ADR の workflow・save strategy・candidate selection の詳細は [docs/internal/adr.md](adr.md) を参照。実装の詳細は [Issue #51](https://github.com/tooppoo/Kogoto/issues/51) で扱う。
 
 ---
 
@@ -48,5 +48,6 @@ Kogoto の開発者が、Kogoto の設計・実装・方針に関する重要な
 ## 関連
 
 - [docs/adr/README.md](../adr/README.md) — 内部 ADR の管理ルール
-- [Issue #51](https://github.com/tooppoo/Kogoto/issues/51) — ユーザー ADR の扱い（candidate extraction / selection / save strategy）
+- [docs/internal/adr.md](adr.md) — ユーザー ADR の workflow・save strategy・candidate selection
+- [Issue #51](https://github.com/tooppoo/Kogoto/issues/51) — ユーザー ADR の実装詳細（candidate extraction / selection / save strategy）
 - [Human-in-the-loop first](../concept/human-in-the-loop-first.md) — Kogoto のコアコンセプト（ADR を知識蓄積の一部として位置付ける）
