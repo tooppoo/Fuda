@@ -1,16 +1,4 @@
-# Kogoto — Fuda からの名称変更方針
-
-Fuda のツール名を `Fuda` から `Kogoto` へ変更する方針を整理する。
-
----
-
-## 決定
-
-ツール名を `Fuda` から `Kogoto` へ変更することを採用する。
-
-`Kogoto` は「小言」に由来し、Fuda が目指す [Strong HITL](./human-in-the-loop-first.md) の性格を直接表す名称である。
-
----
+# Kogoto の名前について
 
 ## 名称の意味づけ
 
@@ -57,30 +45,6 @@ Kogoto — a little fussy runner for the space between human judgment and AI exe
 | 明示的な close コマンドで終了 | run ライフサイクルは人間のコマンドで制御 |
 
 「小言を言う runner」は、ツールとしての完全自律を目指さず、人間との協調を前提とした runner である。
-
----
-
-## Awai Project との関係
-
-将来的に Awai Project の一部として位置づける場合、次の構成が考えられる。
-
-```
-Awai Project
-└─ Awai Workflow
-   └─ Kogoto
-```
-
-`Awai Workflow` は workflow / concept 名、`Kogoto` はその CLI implementation / runner 名として扱う。
-
-## 後方互換性方針
-
-v0 はリリース前であり、実際のユーザーデータは存在しない。そのため、config file・state file・binary 名の変更に対する移行処理は v0 では提供しない。
-
-- `~/.config/fuda/` が存在する場合、自動移行しない。手動で移行するか、削除して再設定する。
-- `.fuda/` の既存 state は `.kogoto/` へ自動移行しない。
-- `fuda` binary alias（`kogoto` へのリダイレクト）は v0 では提供しない。
-
-正式リリース（v1 以降）でユーザーが存在する時点で移行が必要になった場合は、その時点で別 Issue として設計する。
 
 ## 関連
 
