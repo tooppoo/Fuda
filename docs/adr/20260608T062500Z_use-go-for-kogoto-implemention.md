@@ -1,7 +1,7 @@
 # Kogoto の実装言語として Go を採用する
 
 Status: Accepted
-DateTime: 2026-06-08T17:25:00+0900
+DateTime: 2026-06-08T17:25:00+09:00
 
 ## 背景
 
