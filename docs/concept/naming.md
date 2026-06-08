@@ -49,5 +49,5 @@ Kogoto — a little fussy runner for the space between human judgment and AI exe
 ## 関連
 
 - [Human-in-the-loop first](./human-in-the-loop-first.md) — Kogoto のコアコンセプト
-- [GitHub Issue #41](https://github.com/tooppoo/Fuda/issues/41) — 本方針の出発点
-- [GitHub Issue #40](https://github.com/tooppoo/Fuda/issues/40) — Strong HITL コンセプトの確立
+- [GitHub Issue #41](https://github.com/tooppoo/Kogoto/issues/41) — 本方針の出発点
+- [GitHub Issue #40](https://github.com/tooppoo/Kogoto/issues/40) — Strong HITL コンセプトの確立

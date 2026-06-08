@@ -133,7 +133,7 @@ ADR が不要な判断の例:
 - 局所的な refactor
 - 既存方針に従っただけの実装
 
-> **Note**: ADR のファイル命名規則・テンプレート・保存ディレクトリの確定・作成支援 CLI は、この概念文書の対象外である。[Issue #43](https://github.com/tooppoo/Fuda/issues/43) で扱う。
+> **Note**: ADR のファイル命名規則・テンプレート・保存ディレクトリの確定・作成支援 CLI は、この概念文書の対象外である。[Issue #43](https://github.com/tooppoo/Kogoto/issues/43) で扱う。
 
 ---
 
