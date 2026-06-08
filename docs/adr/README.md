@@ -1,6 +1,10 @@
-# Architecture Decision Records
+# Architecture Decision Records（内部 ADR）
 
-このディレクトリは、Kogoto の内部設計判断を ADR (Architecture Decision Record) として管理するための場所である。
+このディレクトリは、Kogoto 自身の設計判断を **内部 ADR** として管理するための場所である。
+
+> Kogoto の開発では ADR を「ユーザー ADR」と「内部 ADR」の 2 種類に区別する。  
+> このディレクトリが対象とするのは **内部 ADR** のみである。  
+> 2 種類の区別については [docs/internal/adr-types.md](../internal/adr-types.md) を参照。
 
 ADR は、Kogoto の現在仕様そのものではなく、「なぜその判断をしたか」を残すための記録である。現在有効な仕様・利用方法・実装方針は、必要に応じて `docs/` 配下の通常文書にも反映する。
 
