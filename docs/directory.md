@@ -17,6 +17,10 @@ internal/
   runner/            # Kogoto 実行ライフサイクルの管理
   state/             # 実行状態の永続化・読み込み
   shell/             # 外部プロセス実行のユーティリティ
+
+docs/                # ドキュメント
+  internal/          # Kogoto開発用の内部文書. 設計・用語定義など
+  usage/             # Kogotoユーザー向けの外部文書. 利用方法など
 ```
 
 ## 各パッケージの責務
