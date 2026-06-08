@@ -13,5 +13,8 @@
         "openai.chatgpt"
       ]
     }
+  },
+  "postCreateCommand": {
+    "setup-git": ["sh", "scripts/setup-git-config.sh"]
   }
 }
