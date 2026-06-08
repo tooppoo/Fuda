@@ -19,12 +19,12 @@ kogoto resolve 7
 8.  writerにplanを作成させる
 9.  planにblockedがあればIssueに質問コメントを投稿して停止する
 10. writerに作業させる
-11. test / lint / typecheck を実行する（verification loop: 失敗時は最大2回までwriterに修正依頼）
+11. test / lint / typecheck を実行する（verification loop: 失敗時は `max_retries` 回までwriterに修正依頼）
 12. 変更をcommitする
 13. reviewerに差分レビューさせる
 14. reviewer出力を正規化してrunner decisionを決める
 15. `blocking` / `major` findingsがあればwriterに修正させる
-16. 修正後にtest / lint / typecheckを再実行する（verification loop: 失敗時は最大2回までwriterに修正依頼）
+16. 修正後にtest / lint / typecheckを再実行する（verification loop: 失敗時は `max_retries` 回までwriterに修正依頼）
 17. 修正をcommitする
 18. reviewerに再レビューさせる
 19. `blocking` / `major` findingsがなくなるまで15〜18を繰り返す
@@ -66,8 +66,8 @@ sequenceDiagram
     writer-->>kogoto: changes
     kogoto->>worktree: test / lint / typecheck
 
-    alt verification failed (retry_count < 2)
-        kogoto->>kogoto: increment verification_loop.retry_count, run_state=fixing
+    alt verification failed (used_retries < max_retries)
+        kogoto->>kogoto: increment verification_loop.used_retries, run_state=fixing
         kogoto->>writer: fix (verification retry)
         writer-->>kogoto: changes
         kogoto->>worktree: test / lint / typecheck (retry)
@@ -81,13 +81,13 @@ sequenceDiagram
     kogoto->>kogoto: normalize findings
 
     alt blocking or major findings exist
-        kogoto->>kogoto: reset verification_loop.retry_count, run_state=fixing
+        kogoto->>kogoto: run_state=fixing
         kogoto->>writer: fix (review)
         writer-->>kogoto: changes
         kogoto->>worktree: test / lint / typecheck
 
-        alt verification failed (retry_count < 2)
-            kogoto->>kogoto: increment verification_loop.retry_count, run_state=fixing
+        alt verification failed (used_retries < max_retries)
+            kogoto->>kogoto: increment verification_loop.used_retries, run_state=fixing
             kogoto->>writer: fix (verification retry)
             writer-->>kogoto: changes
             kogoto->>worktree: test / lint / typecheck (retry)
@@ -192,10 +192,12 @@ test / lint / typecheck の実行と結果による分岐を **verification loop
 verification loop は review loop とは独立している。
 
 - verification 成功（tests pass）: 次のフェーズ（commit）へ進む
-- verification 失敗 and `verification_loop.retry_count < 2`: `retry_count` を加算して `run_state = fixing` を永続化し、writer に修正依頼後、verification を再実行する
-- verification 失敗 and `verification_loop.retry_count >= 2`: PR を作成せず `run_state = failed` で停止する
+- verification 失敗 and `verification_loop.used_retries < max_retries`: `used_retries` を加算して `run_state = fixing` を永続化し、writer に修正依頼後、verification を再実行する
+- verification 失敗 and `verification_loop.used_retries >= max_retries`: PR を作成せず `run_state = failed` で停止する
 
-`retry_count` は write / fix サイクルが新しく始まるたびに `0` にリセットする。v0 での上限は **2** に固定する（設定不可）。
+`used_retries` は run 全体での累積カウントであり、review round をまたいでリセットしない。初回の test / lint / typecheck 実行はretryカウントに含まない。`max_retries` は `config.toml` の `[verification] max_retries` で設定する（初期値: `2`、最小値: `0`）。`0` の場合は初回verification失敗時に即 `failed` で停止する。
+
+`used_retries` は `review_loop.completed_review_rounds` とは独立して管理する。
 
 ```mermaid
 sequenceDiagram
@@ -206,12 +208,12 @@ sequenceDiagram
     kogoto->>worktree: test / lint / typecheck
     alt tests pass
         kogoto->>kogoto: proceed to commit
-    else tests fail and retry_count < 2
-        kogoto->>kogoto: increment verification_loop.retry_count, run_state=fixing
+    else tests fail and used_retries < max_retries
+        kogoto->>kogoto: increment verification_loop.used_retries, run_state=fixing
         kogoto->>writer: fix (verification retry)
         writer-->>kogoto: changes
         kogoto->>worktree: test / lint / typecheck (retry)
-    else retry_count >= 2
+    else used_retries >= max_retries
         kogoto->>kogoto: run_state = failed (verification_failed)
     end
 ```

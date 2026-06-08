@@ -83,7 +83,7 @@ stateDiagram-v2
     writing --> failed : invalid_writer_output
 
     testing --> committing : tests pass
-    testing --> fixing : verification failed, retry_count < 2
+    testing --> fixing : verification failed, used_retries < max_retries
     testing --> failed : verification retry limit reached
 
     committing --> reviewing : commit created
@@ -131,8 +131,8 @@ stateDiagram-v2
 | `writing` | writer cannot continue | `blocked` | blocking question あり |
 | `writing` | writer output invalid | `failed` | `last_error.code = invalid_writer_output`。agent output の parse / validation / normalization failure |
 | `testing` | tests pass | `committing` | commit 前 diff 確認を含む |
-| `testing` | verification failed and `verification_loop.retry_count < 2` | `fixing` | `verification_loop.retry_count` を加算して `run_state = fixing` を永続化してから writer に修正依頼する |
-| `testing` | verification failed and `verification_loop.retry_count >= 2` | `failed` | `last_error.code = verification_failed`。PR 作成せず停止 |
+| `testing` | verification failed and `verification_loop.used_retries < max_retries` | `fixing` | `verification_loop.used_retries` を加算して `run_state = fixing` を永続化してから writer に修正依頼する |
+| `testing` | verification failed and `verification_loop.used_retries >= max_retries` | `failed` | `last_error.code = verification_failed`。PR 作成せず停止 |
 | `committing` | commit created | `reviewing` | reviewer へ |
 | `committing` | commit failed | `failed` | Git 操作失敗 |
 | `reviewing` | reviewer output parse / schema validation / normalization failed | `failed` | `last_error.code = invalid_reviewer_output`。`review-N.json` は書かない。`review-N.raw.txt` のみ保存 |
@@ -208,18 +208,18 @@ human_review_required
 
 ---
 
-## `verification_loop.retry_count`
+## `verification_loop.used_retries`
 
-`verification_loop.retry_count` の詳細な定義は `schemas/run.schema.md` を正とする。
+`verification_loop.used_retries` の詳細な定義は `schemas/run.schema.md` を正とする。
 
 このドキュメントでは、状態遷移に関わるルールのみを記載する。
 
 - 初期値は `0`
 - `testing` → `fixing` 遷移を `run.json` に永続化するタイミングで加算する。writer 呼び出しより前に完了させること
-- write / fix サイクルが新しく始まるたびに `0` にリセットする
-- `review_loop.completed_review_rounds` とは独立して管理する
-- v0 での上限は `2`（設定不可）
-- `verification_loop.retry_count >= 2` で verification がさらに失敗した場合、`testing` → `failed` に遷移する
+- run 全体での累積カウントであり、review round をまたいでリセットしない
+- `review_loop.completed_review_rounds` とは独立して管理する。両者を混同してはならない
+- 上限は `verification_loop.max_retries`（`config.toml` の `[verification] max_retries` に由来）
+- `verification_loop.used_retries >= max_retries` で verification がさらに失敗した場合、`testing` → `failed` に遷移する
 
 ---
 

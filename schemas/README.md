@@ -42,7 +42,9 @@ Go 用 validator ライブラリ選定、atomic write、migration handling、sta
 ```
 
 - `schema_version` は integer
-- v0 では `const: 1`
+- 各スキーマが独立して `const` 値を管理する。全スキーマが同一バージョンである必要はない
+- 破壊的変更（フィールド名変更・削除・型変更）が生じた場合、該当スキーマのみ `const` 値を加算する。他スキーマの `const` は変更しない
+- v0 初版ではすべて `const: 1` から開始する
 - `schema_version` が存在しないファイルは invalid
 - 未知の `schema_version` は `unsupported_schema_version` または `migration_required` として停止する
 
@@ -191,7 +193,7 @@ JSON ではあるがスキーマに合わない場合:
 - [ ] `schemas/review.schema.json` が定義されている
 - [ ] `schemas/run-summary.schema.json` が定義されている
 - [ ] すべての Kogoto-managed persisted JSON に `schema_version` が required として定義されている
-- [ ] `schema_version` は integer `const: 1` として定義されている
+- [ ] `schema_version` は integer として定義されており、各スキーマが独立して `const` 値を管理している（v0 初版はすべて `const: 1`）
 - [ ] nested object を含め、unknown field を原則拒否する方針が明記されている
 - [ ] `status` という汎用フィールド名を使わず、`run_state` / `planning_result` / `reviewer_assessment` / `runner_decision` / `terminal_state` / `completion_result` に分離されている
 - [ ] JSON Schema で扱う制約と semantic validation で扱う制約が分けて書かれている

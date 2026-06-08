@@ -215,6 +215,9 @@ test = ["yarn test"]
 lint = ["yarn lint"]
 typecheck = ["yarn typecheck"]
 
+[verification]
+max_retries = 2
+
 [review]
 max_loops = 3
 fail_on = ["blocking", "major"]
@@ -248,6 +251,7 @@ require_merged_pr = true
 | `commands` | `test` | テスト実行コマンド |
 | `commands` | `lint` | lint実行コマンド |
 | `commands` | `typecheck` | 型チェック実行コマンド |
+| `verification` | `max_retries` | verification retryの上限回数（初期値: `2`）。run全体に対する上限。`0` は初回verification失敗時に即 `failed` で停止する。整数で `0` 以上を指定すること |
 | `review` | `max_loops` | 修正ループの上限回数（初期値: 3） |
 | `review` | `fail_on` | 修正ループを発動するseverity |
 | `review` | `minor_policy` | `minor` 指摘の扱い（`comment-only` など） |

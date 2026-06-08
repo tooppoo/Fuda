@@ -19,7 +19,8 @@ Schema definition: [run.schema.json](run.schema.json)
 | `reviewer.backend` | `writer.backend` と同様 |
 | `review_loop.completed_review_rounds` | integer, minimum `0`。有効に完了した review round 数。初期値は `0` |
 | `review_loop.max_rounds` | integer, minimum `1` |
-| `verification_loop.retry_count` | integer, minimum `0`。writer への修正依頼回数。初期値は `0`。`testing` フェーズ開始時に absent から `{ retry_count: 0 }` に書く。以降は absent にしない |
+| `verification_loop.max_retries` | integer, minimum `0`。`config.toml` の `[verification] max_retries` から実行時に採用した上限値。初めて `testing` に遷移した時点で書き込み、以降は変更しない |
+| `verification_loop.used_retries` | integer, minimum `0`。writer への修正依頼回数。初期値は `0`。`testing` フェーズ開始時に absent から `{ max_retries: N, used_retries: 0 }` に書く。以降は absent にしない |
 | `pull_request` | PR 作成前は absent。作成後は `number` と `url` を持つ object。`null` は使わない |
 | `last_error` | `run_state = "failed"` の場合のみ存在する。失敗原因の詳細を持つ object。`run_state != "failed"` の場合は absent とする |
 | `created_at` / `updated_at` | RFC3339 UTC timestamp 必須。UTC `Z` 表記を要求する |
@@ -33,11 +34,12 @@ Schema definition: [run.schema.json](run.schema.json)
 
 ## `verification_loop`
 
-- `run_state` が初めて `testing` に遷移した時点で `verification_loop: { retry_count: 0 }` を `run.json` に書く
-- `testing` → `fixing` 遷移を `run.json` に永続化するタイミングで `retry_count` を加算する（writer 呼び出しより前）
-- write / fix サイクルが新しく始まるたびに `retry_count` を `0` にリセットする
-- v0 での上限は `2`（設定不可）。`retry_count >= 2` で verification がさらに失敗した場合、`run_state = failed` に遷移する
-- `review_loop.completed_review_rounds` とは独立して管理する
+- `run_state` が初めて `testing` に遷移した時点で `verification_loop: { max_retries: N, used_retries: 0 }` を `run.json` に書く（`N` は `config.toml` の `[verification] max_retries`。未指定時は `2`）
+- `testing` → `fixing` 遷移を `run.json` に永続化するタイミングで `used_retries` を加算する（writer 呼び出しより前）
+- `used_retries` は run 全体での累積カウントであり、review round をまたいでリセットしない
+- `used_retries >= max_retries` で verification がさらに失敗した場合、`run_state = failed` に遷移する
+- `review_loop.completed_review_rounds` とは独立して管理する。両者を混同してはならない
+- `max_retries = 0` の場合、初回 verification 失敗時に即 `run_state = failed` に遷移する
 
 ## `blocked` object
 
@@ -121,7 +123,8 @@ PR 作成済みの正常終了では、状態は次の順に進む。
 - `run_state != "failed"` で `last_error` が存在する state は invalid
 - `review_loop.completed_review_rounds` は `max_rounds` 以下でなければならない
 - `verification_loop` は `testing` フェーズ開始後は absent にしてはならない
-- `verification_loop.retry_count` は `0` から始まり、v0 では `2` を超えてはならない
+- `verification_loop.used_retries` は `0` から始まり、`max_retries` を超えてはならない
+- `verification_loop.max_retries` は `0` 以上の整数でなければならない
 - `created_at` / `updated_at` は UTC `Z` 表記を要求する
 
 ## Recovery policy

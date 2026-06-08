@@ -60,7 +60,8 @@ runの状態とメタデータを管理するファイル。スキーマ: [run.s
     "max_rounds": 3
   },
   "verification_loop": {
-    "retry_count": 0
+    "max_retries": 2,
+    "used_retries": 0
   },
   "created_at": "2026-06-06T00:00:00Z",
   "updated_at": "2026-06-06T00:20:00Z"
