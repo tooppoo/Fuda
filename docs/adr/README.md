@@ -114,6 +114,10 @@ DateTime: YYYY-MM-DDTHH:mm:ss+09:00
 
 必要に応じて、節を追加してよい。ただし、背景・決定・代替案・判断理由・結果の区別は保つ。
 
+現時点では、Kogoto 用 template をこの README に記載する。独立した template file は作らない。
+
+将来的に Kogoto default template として利用者向けにも提供する場合は、ファイル分離を別途検討する。
+
 ---
 
 ## DateTime
