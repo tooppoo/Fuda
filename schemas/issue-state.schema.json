@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "issue-state.schema.json",
+  "title": "issue-state.json",
+  "description": "Issue-level workflow state. Authoritative source for current workflow state and current run selection.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "repository",
+    "issue_number",
+    "issue_workflow_state",
+    "runs",
+    "source_issue",
+    "created_at",
+    "updated_at"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "const": 1
+    },
+    "repository": {
+      "type": "string",
+      "pattern": "^[^/]+/[^/]+$"
+    },
+    "issue_number": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "issue_workflow_state": {
+      "type": "string",
+      "enum": [
+        "not_started",
+        "active",
+        "waiting_for_human",
+        "pr_created",
+        "completed",
+        "aborted",
+        "failed"
+      ]
+    },
+    "current_run_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "runs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["run_id", "run_result"],
+        "additionalProperties": false,
+        "properties": {
+          "run_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "run_result": {
+            "type": "string",
+            "enum": ["active", "succeeded", "failed", "aborted", "retried"]
+          }
+        }
+      }
+    },
+    "source_issue": {
+      "type": "object",
+      "required": ["url", "updated_at"],
+      "additionalProperties": false,
+      "properties": {
+        "url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "last_seen_comment_id": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "issue_workflow_state": { "const": "not_started" } },
+        "required": ["issue_workflow_state"]
+      },
+      "then": { "not": { "required": ["current_run_id"] } }
+    },
+    {
+      "if": {
+        "properties": {
+          "issue_workflow_state": {
+            "enum": ["active", "waiting_for_human", "pr_created", "completed", "aborted", "failed"]
+          }
+        },
+        "required": ["issue_workflow_state"]
+      },
+      "then": { "required": ["current_run_id"] }
+    }
+  ]
+}

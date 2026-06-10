@@ -4,7 +4,9 @@ Schema definition: [run.schema.json](run.schema.json)
 
 ## Purpose
 
-`run.json` は現在の Run を再開・停止・検査するための正本である。
+`run.json` は個別 Run の内部状態・再開判断の正本である。
+
+Issue 全体の現在状態と current run 選択は `issue-state.json` が担う。`run.json` は個別 Run に閉じた状態を管理する。詳細は [docs/internal/state-data.md](../docs/internal/state-data.md) を参照。
 
 ## Field policy
 
@@ -129,7 +131,7 @@ PR 作成済みの正常終了では、状態は次の順に進む。
 
 ## Recovery policy
 
-`run.json` は再開判断の正本であるため、壊れていたら `resume` してはならない。
+`run.json` は個別 Run の再開判断の正本であるため、壊れていたら `resume` してはならない。
 
 ```
 run.json parse error / validation error

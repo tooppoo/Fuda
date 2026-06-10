@@ -49,4 +49,17 @@ flowchart TD
 
 各シナリオの詳細は [scenarios.md](scenarios.md) を参照。
 
+## Issue 単位の操作と状態データ
+
+`resolve`、`status`、`resume`、`answer`、`close` はすべて Issue 単位で動く。Kogoto は `issue-state.json` を Issue 全体の現在状態の正本として扱い、そこから `current_run_id` を通じて個別 Run の `run.json` を参照する。
+
+```text
+issue-state.json  →  current_run_id  →  run.json
+（Issue全体の状態）                   （個別Runの内部状態）
+```
+
+各 Run（`run.json`）は、特定 Issue に対する1回の実行試行・実行記録を表す。failed / aborted / retried となった過去の Run も削除されず、`issue-state.json` の `runs` 配列に履歴として保持される。
+
+詳細は [内部仕様: 状態データ設計](../internal/state-data.md) を参照。
+
 完全な状態遷移図（`run_state` enum・異常系・再開ポリシーを含む）は [内部仕様: Run State Machine](../internal/state-machine.md) を参照。
