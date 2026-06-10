@@ -15,23 +15,28 @@
 
 ## 作業中のログ構造
 
-作業中は以下のファイルがrunディレクトリに作成される。
+作業中は以下のファイルが run ディレクトリに作成される。
+
+状態データのパス設計については [state-data.md](state-data.md) を参照。
 
 ```
-.kogoto/runs/{issue_number}/
-  run.json          # run全体のメタデータ・状態
-  issue.md          # 取得したIssue本文とコメント
-  plan.json         # writerが作成したplan（正規化済み）
-  plan.raw.txt      # writerのraw output（debugging artifact）
-  implement.log     # writer実行ログ
-  test-1.log        # 1回目のtest/lint/typecheck実行ログ
-  review-1.json     # 1回目のreviewerレビュー結果（正規化済み）
-  review-1.raw.txt  # 1回目のreviewer raw output（debugging artifact）
-  fix-1.log         # 1回目の修正ログ
-  test-2.log        # 2回目のtest/lint/typecheck実行ログ
-  review-2.json     # 2回目のレビュー結果
-  review-2.raw.txt  # 2回目のreviewer raw output
-  pr.md             # PR本文
+.kogoto/repositories/<host>/<owner>/<repo>/issues/<issue-number>/
+  issue-state.json  # Issue全体の現在状態・current run選択の正本
+  runs/
+    <run-id>/
+      run.json          # 個別Runの内部状態・再開判断の正本
+      issue.md          # 取得したIssue本文とコメント
+      plan.json         # writerが作成したplan（正規化済み）
+      plan.raw.txt      # writerのraw output（debugging artifact）
+      implement.log     # writer実行ログ
+      test-1.log        # 1回目のtest/lint/typecheck実行ログ
+      review-1.json     # 1回目のreviewerレビュー結果（正規化済み）
+      review-1.raw.txt  # 1回目のreviewer raw output（debugging artifact）
+      fix-1.log         # 1回目の修正ログ
+      test-2.log        # 2回目のtest/lint/typecheck実行ログ
+      review-2.json     # 2回目のレビュー結果
+      review-2.raw.txt  # 2回目のreviewer raw output
+      pr.md             # PR本文
 ```
 
 ループが続く場合は `review-N.json` / `review-N.raw.txt` / `fix-N.log` / `test-N.log` が追加される。
@@ -149,10 +154,10 @@ passの場合:
 
 ## close後のログ構造
 
-`kogoto close` 実行後は詳細ファイルを削除し、summaryのみ残す。
+`kogoto close` 実行後は詳細ファイルを削除し、summary のみ run ディレクトリに残す。
 
 ```
-~/.local/state/kogoto/runs/{repo_owner}-{repo_name}/{issue_number}/
+.kogoto/repositories/<host>/<owner>/<repo>/issues/<issue-number>/runs/<run-id>/
   run-summary.json
 ```
 
@@ -224,8 +229,9 @@ close後に残すsummary。スキーマ: [run-summary.schema.json](../../schemas
 
 | 用途 | パス |
 |------|------|
-| 作業中ログ | `.kogoto/runs/{issue_number}/` |
-| close後summary | `~/.local/state/kogoto/runs/{repo_owner}-{repo_name}/{issue_number}/` |
+| Issue全体の状態 | `.kogoto/repositories/<host>/<owner>/<repo>/issues/<issue-number>/issue-state.json` |
+| 作業中ログ（Run単位） | `.kogoto/repositories/<host>/<owner>/<repo>/issues/<issue-number>/runs/<run-id>/` |
+| close後summary | 同上の run ディレクトリに `run-summary.json` のみ残る。中間ファイルは削除される |
 
 ---
 

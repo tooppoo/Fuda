@@ -4,6 +4,10 @@
 
 このドキュメントは `run.json.run_state` の状態機械を定義する。
 
+`run_state` は個別 Run の状態機械であり、Issue workflow 全体の状態ではない。
+
+Issue 全体の現在状態は `issue-state.json.issue_workflow_state` で表す。`issue_workflow_state` と `run_state` は別の概念であり、混同してはならない。二層構造の詳細は [state-data.md](state-data.md) を参照。
+
 `status` という汎用フィールド名は使用しない。各ファイルの状態フィールドは次のように分離する。
 
 | File | Field | Meaning |
@@ -55,7 +59,7 @@ failed
 | succeeded | `pr_created`, `succeeded` |
 | terminated | `aborted`, `failed` |
 
-`pr_created` は、PR 作成済みで `run.json.pull_request` に PR number / URL が記録済みの状態を表す。  
+`pr_created` は、PR 作成済みで `run.json.pull_request` に PR number / URL が記録済みの状態を表す。
 `succeeded` は、Kogoto Run が正常終了し、必要な終了処理が完了した状態を表す。GitHub source issue が close 済みであることを意味しない。
 
 ---
@@ -254,7 +258,7 @@ completion_result:
 | `aborted` | `aborted_by_user` |
 | `failed` | `failed_due_to_invalid_state`, `failed_due_to_agent_error`, `failed_due_to_git_error` |
 
-`completion_result = pr_created` の場合、`pull_request` は required とする。  
+`completion_result = pr_created` の場合、`pull_request` は required とする。
 `completion_result != pr_created` の場合、`pull_request` は absent とする。
 
 PR 作成済みで正常終了した場合の記録例。
