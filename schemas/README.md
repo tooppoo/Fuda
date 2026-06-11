@@ -154,7 +154,7 @@ agent の raw output は debugging artifact として扱う。
 | `branch_already_exists` | `preparing_worktree` | branch が既存（Kogoto 管理 run 不明） |
 | `worktree_path_already_exists` | `preparing_worktree` | worktree path が既存（Kogoto 管理 run 不明） |
 | `writer_launch_failed` | `planning` / `writing` | writer agent 起動失敗 |
-| `invalid_writer_output` | `planning` / `writing` | writer 出力が不正。`plan.raw.txt` のみ保存、`plan.json` は書かれない |
+| `invalid_writer_output` | `planning` / `writing` / `fixing` | writer 出力が不正。planning では `plan.raw.txt` のみ保存し、`plan.json` は書かれない。writing / fixing では `implement.log` または `fix-N.log` を保存し、追加の正規化済み JSON は書かれない |
 | `verification_failed` | `testing` | test / lint / typecheck 失敗（retry 上限到達後） |
 | `nothing_to_commit` | `committing` | commit 対象変更なし |
 | `commit_failed` | `committing` | commit 失敗 |
