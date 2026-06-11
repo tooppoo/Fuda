@@ -3,7 +3,8 @@
   "image": "mcr.microsoft.com/devcontainers/go:1.26-bookworm",
   "features": {
     "ghcr.io/devcontainers/features/github-cli:1.1.0": {},
-    "ghcr.io/devcontainers/features/common-utils:2": {}
+    "ghcr.io/devcontainers/features/common-utils:2": {},
+    "ghcr.io/tooppoo/devcontainer-features/git-kura:0": {}
   },
   "customizations": {
     "vscode": {
