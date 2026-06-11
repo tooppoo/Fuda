@@ -9,8 +9,8 @@ import (
 
 	"github.com/tooppoo/Kogoto/internal/agent/fake"
 	"github.com/tooppoo/Kogoto/internal/config"
-	github "github.com/tooppoo/Kogoto/internal/tracker/github"
 	"github.com/tooppoo/Kogoto/internal/runner"
+	github "github.com/tooppoo/Kogoto/internal/tracker/github"
 )
 
 const version = "0.0.0-dev"
