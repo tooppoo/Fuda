@@ -1,10 +1,12 @@
 {
   "name": "Kogoto",
-  "image": "mcr.microsoft.com/devcontainers/go:1.26-bookworm",
+  "image": "mcr.microsoft.com/devcontainers/base:2.1.9-trixie",
   "features": {
     "ghcr.io/devcontainers/features/github-cli:1.1.0": {},
     "ghcr.io/devcontainers/features/common-utils:2": {},
-    "ghcr.io/tooppoo/devcontainer-features/git-kura:0": {}
+    "ghcr.io/devcontainers/features/go:1": {
+      "version": "1.26"
+    }
   },
   "customizations": {
     "vscode": {
