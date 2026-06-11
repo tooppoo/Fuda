@@ -1,6 +1,7 @@
 # ログ仕様
 
 > JSON フォーマットの正本は [`schemas/`](../../schemas/README.md) 以下の各スキーマファイル。このドキュメントはファイル構成・目的・サンプルを示す。
+> Agent adapter の入出力契約と raw output の扱いは [agent-contract.md](agent-contract.md) を参照。
 
 ## Run Log
 

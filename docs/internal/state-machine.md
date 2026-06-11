@@ -102,6 +102,7 @@ stateDiagram-v2
 
     fixing --> testing : fix completed
     fixing --> blocked : writer cannot resolve
+    fixing --> failed : invalid_writer_output
 
     pr_created --> succeeded : run summary written and finalization completed
 
@@ -148,6 +149,7 @@ stateDiagram-v2
 | `reviewing` | `runner_decision = human_review_required` | `human_review_required` | 自動進行停止 |
 | `fixing` | fix completed | `testing` | 再検証 |
 | `fixing` | writer cannot resolve | `blocked` | blocking question あり |
+| `fixing` | writer output invalid | `failed` | `last_error.code = invalid_writer_output`。agent output の parse / validation / normalization failure |
 | `pr_created` | run summary written and finalization completed | `succeeded` | Kogoto Run の正常終了 |
 | any non-terminal | user abort | `aborted` | 明示中断 |
 | any non-terminal | unrecoverable runner / environment error | `failed` | runner / environment failure |
