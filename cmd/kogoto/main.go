@@ -3,7 +3,9 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"strconv"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -68,12 +70,12 @@ func newResolveCmd() *cobra.Command {
 			t := github.New(cfg.GitHub.Owner, cfg.GitHub.Repo, cfg.GitHub.Token, cfg.GitHub.Host)
 			w := &fake.Writer{}
 
-			cwd, err := os.Getwd()
+			root, err := gitRepoRoot()
 			if err != nil {
 				return err
 			}
 
-			r := runner.New(cwd, cfg, t, w)
+			r := runner.New(root, cfg, t, w)
 			result, err := r.Resolve(cmd.Context(), issueNumber)
 			if err != nil {
 				return err
@@ -93,27 +95,31 @@ func newStatusCmd() *cobra.Command {
 		Short: "Show the status of the current run",
 		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if len(args) == 0 {
-				return fmt.Errorf("issue number is required")
-			}
-
-			issueNumber, err := strconv.Atoi(args[0])
-			if err != nil || issueNumber < 1 {
-				return fmt.Errorf("invalid issue number: %s", args[0])
-			}
-
 			cfg, err := config.LoadBase()
 			if err != nil {
 				return err
 			}
-
-			cwd, err := os.Getwd()
+			root, err := gitRepoRoot()
 			if err != nil {
 				return err
 			}
-
-			r := runner.New(cwd, cfg, nil, nil)
+			r := runner.New(root, cfg, nil, nil)
+			if len(args) == 0 {
+				return r.StatusActive()
+			}
+			issueNumber, err := strconv.Atoi(args[0])
+			if err != nil || issueNumber < 1 {
+				return fmt.Errorf("invalid issue number: %s", args[0])
+			}
 			return r.Status(issueNumber)
 		},
 	}
+}
+
+func gitRepoRoot() (string, error) {
+	out, err := exec.Command("git", "rev-parse", "--show-toplevel").Output()
+	if err != nil {
+		return "", fmt.Errorf("resolve git repository root: %w", err)
+	}
+	return strings.TrimRight(string(out), "\n"), nil
 }

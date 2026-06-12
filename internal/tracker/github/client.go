@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -30,14 +31,15 @@ func New(owner, repo, token, host string) *Client {
 }
 
 type apiIssue struct {
-	Number    int       `json:"number"`
-	Title     string    `json:"title"`
-	Body      string    `json:"body"`
-	HTMLURL   string    `json:"html_url"`
-	UpdatedAt time.Time `json:"updated_at"`
+	Number      int       `json:"number"`
+	Title       string    `json:"title"`
+	Body        string    `json:"body"`
+	HTMLURL     string    `json:"html_url"`
+	UpdatedAt   time.Time `json:"updated_at"`
+	PullRequest *struct{} `json:"pull_request,omitempty"`
 }
 
-func (c *Client) GetIssue(ctx context.Context, number int) (tracker.Issue, error) {
+func (c *Client) GetIssue(ctx context.Context, number int) (_ tracker.Issue, err error) {
 	url := fmt.Sprintf("https://api.%s/repos/%s/%s/issues/%d", c.host, c.owner, c.repo, number)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
@@ -51,7 +53,9 @@ func (c *Client) GetIssue(ctx context.Context, number int) (tracker.Issue, error
 	if err != nil {
 		return tracker.Issue{}, err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		err = errors.Join(err, resp.Body.Close())
+	}()
 
 	switch resp.StatusCode {
 	case http.StatusOK:
@@ -67,6 +71,9 @@ func (c *Client) GetIssue(ctx context.Context, number int) (tracker.Issue, error
 	if err := json.NewDecoder(resp.Body).Decode(&issue); err != nil {
 		return tracker.Issue{}, fmt.Errorf("decode issue response: %w", err)
 	}
+	if issue.PullRequest != nil {
+		return tracker.Issue{}, fmt.Errorf("#%d is a pull request, not an issue", number)
+	}
 
 	return tracker.Issue{
 		Number:    issue.Number,
@@ -77,7 +84,7 @@ func (c *Client) GetIssue(ctx context.Context, number int) (tracker.Issue, error
 	}, nil
 }
 
-func (c *Client) PostComment(ctx context.Context, number int, body string) (int64, error) {
+func (c *Client) PostComment(ctx context.Context, number int, body string) (_ int64, err error) {
 	url := fmt.Sprintf("https://api.%s/repos/%s/%s/issues/%d/comments", c.host, c.owner, c.repo, number)
 
 	payload, err := json.Marshal(map[string]string{"body": body})
@@ -97,7 +104,9 @@ func (c *Client) PostComment(ctx context.Context, number int, body string) (int6
 	if err != nil {
 		return 0, err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		err = errors.Join(err, resp.Body.Close())
+	}()
 
 	if resp.StatusCode != http.StatusCreated {
 		return 0, fmt.Errorf("post comment failed: %s", resp.Status)
