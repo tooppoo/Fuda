@@ -1,13 +1,12 @@
 package github
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
-	"time"
+
+	gogithub "github.com/google/go-github/v73/github"
 
 	"github.com/tooppoo/Kogoto/internal/tracker"
 )
@@ -15,92 +14,63 @@ import (
 type Client struct {
 	owner  string
 	repo   string
-	token  string
-	host   string
-	client *http.Client
+	client *gogithub.Client
 }
 
-func New(owner, repo, token, host string) *Client {
-	return &Client{
-		owner:  owner,
-		repo:   repo,
-		token:  token,
-		host:   host,
-		client: &http.Client{Timeout: 30 * time.Second},
+func New(owner, repo, token, host string) (*Client, error) {
+	var ghClient *gogithub.Client
+	if host == "github.com" {
+		ghClient = gogithub.NewClient(nil).WithAuthToken(token)
+	} else {
+		var err error
+		ghClient, err = gogithub.NewEnterpriseClient(
+			fmt.Sprintf("https://%s/api/v3/", host),
+			fmt.Sprintf("https://%s/api/uploads/", host),
+			nil,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("create GitHub enterprise client for %s: %w", host, err)
+		}
+		ghClient = ghClient.WithAuthToken(token)
 	}
-}
-
-type apiIssue struct {
-	Number      int       `json:"number"`
-	Title       string    `json:"title"`
-	Body        string    `json:"body"`
-	HTMLURL     string    `json:"html_url"`
-	UpdatedAt   time.Time `json:"updated_at"`
-	PullRequest *struct{} `json:"pull_request,omitempty"`
+	return &Client{owner: owner, repo: repo, client: ghClient}, nil
 }
 
 func (c *Client) GetIssue(ctx context.Context, number int) (_ tracker.Issue, err error) {
-	url := fmt.Sprintf("https://api.%s/repos/%s/%s/issues/%d", c.host, c.owner, c.repo, number)
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	issue, resp, err := c.client.Issues.Get(ctx, c.owner, c.repo, number)
 	if err != nil {
-		return tracker.Issue{}, err
-	}
-	req.Header.Set("Authorization", "token "+c.token)
-	req.Header.Set("Accept", "application/vnd.github.v3+json")
-
-	resp, err := c.client.Do(req)
-	if err != nil {
+		var gerr *gogithub.ErrorResponse
+		if errors.As(err, &gerr) {
+			switch gerr.Response.StatusCode {
+			case http.StatusNotFound:
+				return tracker.Issue{}, fmt.Errorf("issue #%d not found", number)
+			case http.StatusUnauthorized:
+				return tracker.Issue{}, fmt.Errorf("GitHub authentication failed")
+			}
+		}
 		return tracker.Issue{}, err
 	}
 	defer func() {
 		err = errors.Join(err, resp.Body.Close())
 	}()
 
-	switch resp.StatusCode {
-	case http.StatusOK:
-	case http.StatusNotFound:
-		return tracker.Issue{}, fmt.Errorf("issue #%d not found", number)
-	case http.StatusUnauthorized:
-		return tracker.Issue{}, fmt.Errorf("GitHub authentication failed")
-	default:
-		return tracker.Issue{}, fmt.Errorf("GitHub API error: %s", resp.Status)
-	}
-
-	var issue apiIssue
-	if err := json.NewDecoder(resp.Body).Decode(&issue); err != nil {
-		return tracker.Issue{}, fmt.Errorf("decode issue response: %w", err)
-	}
-	if issue.PullRequest != nil {
+	if issue.IsPullRequest() {
 		return tracker.Issue{}, fmt.Errorf("#%d is a pull request, not an issue", number)
 	}
 
 	return tracker.Issue{
-		Number:    issue.Number,
-		Title:     issue.Title,
-		Body:      issue.Body,
-		URL:       issue.HTMLURL,
-		UpdatedAt: issue.UpdatedAt,
+		Number:    issue.GetNumber(),
+		Title:     issue.GetTitle(),
+		Body:      issue.GetBody(),
+		URL:       issue.GetHTMLURL(),
+		UpdatedAt: issue.GetUpdatedAt().Time,
 	}, nil
 }
 
 func (c *Client) PostComment(ctx context.Context, number int, body string) (_ int64, err error) {
-	url := fmt.Sprintf("https://api.%s/repos/%s/%s/issues/%d/comments", c.host, c.owner, c.repo, number)
-
-	payload, err := json.Marshal(map[string]string{"body": body})
-	if err != nil {
-		return 0, err
-	}
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(payload))
-	if err != nil {
-		return 0, err
-	}
-	req.Header.Set("Authorization", "token "+c.token)
-	req.Header.Set("Accept", "application/vnd.github.v3+json")
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := c.client.Do(req)
+	comment, resp, err := c.client.Issues.CreateComment(ctx, c.owner, c.repo, number, &gogithub.IssueComment{
+		Body: gogithub.Ptr(body),
+	})
 	if err != nil {
 		return 0, err
 	}
@@ -108,16 +78,5 @@ func (c *Client) PostComment(ctx context.Context, number int, body string) (_ in
 		err = errors.Join(err, resp.Body.Close())
 	}()
 
-	if resp.StatusCode != http.StatusCreated {
-		return 0, fmt.Errorf("post comment failed: %s", resp.Status)
-	}
-
-	var result struct {
-		ID int64 `json:"id"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return 0, fmt.Errorf("decode comment response: %w", err)
-	}
-
-	return result.ID, nil
+	return comment.GetID(), nil
 }

@@ -67,7 +67,10 @@ func newResolveCmd() *cobra.Command {
 				return err
 			}
 
-			t := github.New(cfg.GitHub.Owner, cfg.GitHub.Repo, cfg.GitHub.Token, cfg.GitHub.Host)
+			t, err := github.New(cfg.GitHub.Owner, cfg.GitHub.Repo, cfg.GitHub.Token, cfg.GitHub.Host)
+			if err != nil {
+				return err
+			}
 			w := &fake.Writer{}
 
 			root, err := gitRepoRoot()

@@ -7,6 +7,12 @@ import (
 	"github.com/tooppoo/Kogoto/internal/state"
 )
 
+// Fixed UUIDs used across tests (valid UUID v4 format).
+const (
+	testRunID1 = "00000000-0000-4000-8000-000000000001"
+	testRunID2 = "00000000-0000-4000-8000-000000000002"
+)
+
 func TestIssueStateRoundTrip(t *testing.T) {
 	dir := t.TempDir()
 	now := time.Now().UTC().Truncate(time.Second)
@@ -17,9 +23,9 @@ func TestIssueStateRoundTrip(t *testing.T) {
 		SchemaVersion:      1,
 		Repository:         "owner/repo",
 		IssueNumber:        42,
-		IssueWorkflowState: "waiting_for_human",
-		CurrentRunID:       "abc123",
-		Runs:               []state.RunRecord{{RunID: "abc123", RunResult: "active"}},
+		IssueWorkflowState: state.IssueWorkflowStateWaitingForHuman,
+		CurrentRunID:       testRunID1,
+		Runs:               []state.RunRecord{{RunID: testRunID1, RunResult: state.RunResultActive}},
 		SourceIssue: state.SourceIssue{
 			URL:       "https://github.com/owner/repo/issues/42",
 			UpdatedAt: now,
@@ -37,13 +43,13 @@ func TestIssueStateRoundTrip(t *testing.T) {
 		t.Fatalf("ReadIssueState: %v", err)
 	}
 
-	if got.IssueWorkflowState != "waiting_for_human" {
-		t.Errorf("IssueWorkflowState: got %q, want %q", got.IssueWorkflowState, "waiting_for_human")
+	if got.IssueWorkflowState != state.IssueWorkflowStateWaitingForHuman {
+		t.Errorf("IssueWorkflowState: got %q, want %q", got.IssueWorkflowState, state.IssueWorkflowStateWaitingForHuman)
 	}
-	if got.CurrentRunID != "abc123" {
-		t.Errorf("CurrentRunID: got %q, want %q", got.CurrentRunID, "abc123")
+	if got.CurrentRunID != testRunID1 {
+		t.Errorf("CurrentRunID: got %q, want %q", got.CurrentRunID, testRunID1)
 	}
-	if len(got.Runs) != 1 || got.Runs[0].RunID != "abc123" {
+	if len(got.Runs) != 1 || got.Runs[0].RunID != testRunID1 {
 		t.Errorf("Runs mismatch: %+v", got.Runs)
 	}
 }
@@ -52,18 +58,18 @@ func TestRunStateRoundTrip(t *testing.T) {
 	dir := t.TempDir()
 	now := time.Now().UTC().Truncate(time.Second)
 
-	path := state.RunStatePath(dir, "github.com", "owner", "repo", 42, "run-001")
+	path := state.RunStatePath(dir, "github.com", "owner", "repo", 42, testRunID2)
 
 	original := &state.RunState{
 		SchemaVersion: 1,
-		RunID:         "run-001",
+		RunID:         testRunID2,
 		Repository:    "owner/repo",
 		IssueNumber:   42,
-		RunStateValue: "blocked",
+		RunStateValue: state.RunStateBlocked,
 		Branch:        "kogoto/issue-42",
 		Worktree:      "/tmp/worktrees/repo-issue-42",
-		Writer:        state.Backend{BackendType: "claude"},
-		Reviewer:      state.Backend{BackendType: "claude"},
+		Writer:        state.Backend{BackendType: state.BackendTypeClaude},
+		Reviewer:      state.Backend{BackendType: state.BackendTypeClaude},
 		ReviewLoop:    state.ReviewLoop{CompletedReviewRounds: 0, MaxRounds: 3},
 		Blocked: &state.BlockedInfo{
 			Questions: []state.BlockedQuestion{
@@ -86,8 +92,8 @@ func TestRunStateRoundTrip(t *testing.T) {
 		t.Fatalf("ReadRunState: %v", err)
 	}
 
-	if got.RunStateValue != "blocked" {
-		t.Errorf("RunStateValue: got %q, want %q", got.RunStateValue, "blocked")
+	if got.RunStateValue != state.RunStateBlocked {
+		t.Errorf("RunStateValue: got %q, want %q", got.RunStateValue, state.RunStateBlocked)
 	}
 	if got.Blocked == nil {
 		t.Fatal("Blocked should not be nil")

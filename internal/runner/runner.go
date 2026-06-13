@@ -2,7 +2,6 @@ package runner
 
 import (
 	"context"
-	"crypto/rand"
 	"errors"
 	"fmt"
 	"os"
@@ -10,6 +9,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/google/uuid"
 
 	"github.com/tooppoo/Kogoto/internal/agent"
 	"github.com/tooppoo/Kogoto/internal/config"
@@ -44,7 +45,7 @@ func (r *Runner) Resolve(ctx context.Context, issueNumber int) (*ResolveResult, 
 	// Refuse to overwrite an in-progress run.
 	if existing, err := state.ReadIssueState(issueStatePath); err == nil {
 		switch existing.IssueWorkflowState {
-		case "active", "waiting_for_human":
+		case state.IssueWorkflowStateActive, state.IssueWorkflowStateWaitingForHuman:
 			return nil, fmt.Errorf("issue #%d is already %s (run %s); use `kogoto resume`",
 				issueNumber, existing.IssueWorkflowState, existing.CurrentRunID)
 		}
@@ -58,10 +59,11 @@ func (r *Runner) Resolve(ctx context.Context, issueNumber int) (*ResolveResult, 
 		return nil, fmt.Errorf("load issue: %w", err)
 	}
 
-	runID, err := newUUID()
+	runID, err := uuid.NewV7()
 	if err != nil {
 		return nil, fmt.Errorf("generate run ID: %w", err)
 	}
+	runIDStr := runID.String()
 
 	branch := fmt.Sprintf("%s%d", r.cfg.Workspace.BranchPrefix, issueNumber)
 	worktree := filepath.Join(r.cfg.Workspace.Root, fmt.Sprintf("%s-issue-%d", repo, issueNumber))
@@ -71,9 +73,9 @@ func (r *Runner) Resolve(ctx context.Context, issueNumber int) (*ResolveResult, 
 		SchemaVersion:      1,
 		Repository:         repository,
 		IssueNumber:        issueNumber,
-		IssueWorkflowState: "active",
-		CurrentRunID:       runID,
-		Runs:               []state.RunRecord{{RunID: runID, RunResult: "active"}},
+		IssueWorkflowState: state.IssueWorkflowStateActive,
+		CurrentRunID:       runIDStr,
+		Runs:               []state.RunRecord{{RunID: runIDStr, RunResult: state.RunResultActive}},
 		SourceIssue: state.SourceIssue{
 			URL:       issue.URL,
 			UpdatedAt: issue.UpdatedAt,
@@ -85,17 +87,17 @@ func (r *Runner) Resolve(ctx context.Context, issueNumber int) (*ResolveResult, 
 		return nil, fmt.Errorf("write issue-state.json: %w", err)
 	}
 
-	runStatePath := state.RunStatePath(r.base, host, owner, repo, issueNumber, runID)
-	runState := &state.RunState{
+	runStatePath := state.RunStatePath(r.base, host, owner, repo, issueNumber, runIDStr)
+	runSt := &state.RunState{
 		SchemaVersion: 1,
-		RunID:         runID,
+		RunID:         runIDStr,
 		Repository:    repository,
 		IssueNumber:   issueNumber,
-		RunStateValue: "initialized",
+		RunStateValue: state.RunStateInitialized,
 		Branch:        branch,
 		Worktree:      worktree,
-		Writer:        state.Backend{BackendType: "claude"},
-		Reviewer:      state.Backend{BackendType: "claude"},
+		Writer:        state.Backend{BackendType: state.BackendTypeClaude},
+		Reviewer:      state.Backend{BackendType: state.BackendTypeClaude},
 		ReviewLoop: state.ReviewLoop{
 			CompletedReviewRounds: 0,
 			MaxRounds:             r.cfg.Review.MaxLoops,
@@ -103,40 +105,44 @@ func (r *Runner) Resolve(ctx context.Context, issueNumber int) (*ResolveResult, 
 		CreatedAt: now,
 		UpdatedAt: now,
 	}
-	if err := state.WriteRunState(runStatePath, runState); err != nil {
+	if err := state.WriteRunState(runStatePath, runSt); err != nil {
 		return nil, fmt.Errorf("write run.json (initialized): %w", err)
 	}
 
 	// Advance through pre-planning states.
-	for _, s := range []string{"loading_issue", "preparing_worktree", "planning"} {
-		runState.RunStateValue = s
-		runState.UpdatedAt = time.Now().UTC()
-		if err := state.WriteRunState(runStatePath, runState); err != nil {
+	for _, s := range []state.RunStateValue{
+		state.RunStateLoadingIssue,
+		state.RunStatePreparingWorktree,
+		state.RunStatePlanning,
+	} {
+		runSt.RunStateValue = s
+		runSt.UpdatedAt = time.Now().UTC()
+		if err := state.WriteRunState(runStatePath, runSt); err != nil {
 			return nil, fmt.Errorf("write run.json (%s): %w", s, err)
 		}
 	}
 
 	// Call planner.
 	planResult, err := r.writer.Plan(ctx, agent.PlanInput{
-		RunID:        runID,
+		RunID:        runIDStr,
 		Repository:   repository,
 		IssueNumber:  issueNumber,
 		IssueTitle:   issue.Title,
 		IssueBody:    issue.Body,
 		Branch:       branch,
 		Worktree:     worktree,
-		ArtifactsDir: state.RunDir(r.base, host, owner, repo, issueNumber, runID),
+		ArtifactsDir: state.RunDir(r.base, host, owner, repo, issueNumber, runIDStr),
 		Now:          time.Now().UTC(),
 	})
 	if err != nil {
 		planErr := fmt.Errorf("plan: %w", err)
-		cleanupErr := markFailed(issueStatePath, issueState, runStatePath, runState, "planning", "writer_launch_failed", planErr)
+		cleanupErr := markFailed(issueStatePath, issueState, runStatePath, runSt, string(state.RunStatePlanning), state.ErrorCodeWriterLaunchFailed, planErr)
 		return nil, errors.Join(planErr, cleanupErr)
 	}
 
-	if planResult.Plan.PlanningResult != "blocked_by_ambiguity" {
+	if planResult.Plan.PlanningResult != agent.PlanningResultBlockedByAmbiguity {
 		unsupported := fmt.Errorf("planning result %q is not yet supported", planResult.Plan.PlanningResult)
-		cleanupErr := markFailed(issueStatePath, issueState, runStatePath, runState, "planning", "invalid_writer_output", unsupported)
+		cleanupErr := markFailed(issueStatePath, issueState, runStatePath, runSt, string(state.RunStatePlanning), state.ErrorCodeInvalidWriterOutput, unsupported)
 		return nil, errors.Join(unsupported, cleanupErr)
 	}
 
@@ -154,41 +160,41 @@ func (r *Runner) Resolve(ctx context.Context, issueNumber int) (*ResolveResult, 
 	}
 	if len(blockedQuestions) == 0 {
 		noBlocking := fmt.Errorf("blocked_by_ambiguity returned no blocking questions")
-		cleanupErr := markFailed(issueStatePath, issueState, runStatePath, runState, "planning", "invalid_writer_output", noBlocking)
+		cleanupErr := markFailed(issueStatePath, issueState, runStatePath, runSt, string(state.RunStatePlanning), state.ErrorCodeInvalidWriterOutput, noBlocking)
 		return nil, errors.Join(noBlocking, cleanupErr)
 	}
 
 	// Post clarification comment.
-	commentBody := formatBlockedComment(runID, issueNumber, planResult.Plan.Questions)
+	commentBody := formatBlockedComment(runIDStr, issueNumber, planResult.Plan.Questions)
 	commentID, err := r.tracker.PostComment(ctx, issueNumber, commentBody)
 	if err != nil {
-		cleanupErr := markFailed(issueStatePath, issueState, runStatePath, runState, "posting_comment", "runner_error", err)
+		cleanupErr := markFailed(issueStatePath, issueState, runStatePath, runSt, "posting_comment", state.ErrorCodeRunnerError, err)
 		return nil, errors.Join(fmt.Errorf("post blocked comment: %w", err), cleanupErr)
 	}
 
 	postedAt := time.Now().UTC()
 
 	// Transition to blocked.
-	runState.RunStateValue = "blocked"
-	runState.Blocked = &state.BlockedInfo{
+	runSt.RunStateValue = state.RunStateBlocked
+	runSt.Blocked = &state.BlockedInfo{
 		Questions:         blockedQuestions,
 		QuestionCommentID: commentID,
 		QuestionPostedAt:  postedAt,
 		WaitingSince:      postedAt,
 	}
-	runState.UpdatedAt = time.Now().UTC()
-	if err := state.WriteRunState(runStatePath, runState); err != nil {
+	runSt.UpdatedAt = time.Now().UTC()
+	if err := state.WriteRunState(runStatePath, runSt); err != nil {
 		return nil, fmt.Errorf("write run.json (blocked): %w", err)
 	}
 
 	// Update issue workflow state.
-	issueState.IssueWorkflowState = "waiting_for_human"
+	issueState.IssueWorkflowState = state.IssueWorkflowStateWaitingForHuman
 	issueState.UpdatedAt = time.Now().UTC()
 	if err := state.WriteIssueState(issueStatePath, issueState); err != nil {
 		return nil, fmt.Errorf("write issue-state.json (waiting_for_human): %w", err)
 	}
 
-	return &ResolveResult{RunID: runID}, nil
+	return &ResolveResult{RunID: runIDStr}, nil
 }
 
 func (r *Runner) Status(issueNumber int) error {
@@ -214,17 +220,17 @@ func (r *Runner) Status(issueNumber int) error {
 	}
 
 	runStatePath := state.RunStatePath(r.base, host, owner, repo, issueNumber, issueState.CurrentRunID)
-	runState, err := state.ReadRunState(runStatePath)
+	runSt, err := state.ReadRunState(runStatePath)
 	if err != nil {
 		return fmt.Errorf("read run.json: %w", err)
 	}
 
-	fmt.Printf("\nRun %s\n", runState.RunID)
-	fmt.Printf("  run state: %s\n", runState.RunStateValue)
+	fmt.Printf("\nRun %s\n", runSt.RunID)
+	fmt.Printf("  run state: %s\n", runSt.RunStateValue)
 
-	if runState.Blocked != nil {
+	if runSt.Blocked != nil {
 		fmt.Printf("\n  Blocked questions:\n")
-		for _, q := range runState.Blocked.Questions {
+		for _, q := range runSt.Blocked.Questions {
 			fmt.Printf("    [%s] %s\n", q.ID, q.Question)
 		}
 	}
@@ -277,7 +283,7 @@ func (r *Runner) StatusActive() error {
 			return fmt.Errorf("read issue-state.json for issue #%d: %w", issueNumber, err)
 		}
 		switch issueState.IssueWorkflowState {
-		case "active", "waiting_for_human":
+		case state.IssueWorkflowStateActive, state.IssueWorkflowStateWaitingForHuman:
 		default:
 			continue
 		}
@@ -294,49 +300,31 @@ func (r *Runner) StatusActive() error {
 
 func markFailed(
 	issueStatePath string, issueState *state.IssueState,
-	runStatePath string, runState *state.RunState,
-	phase, code string, origErr error,
+	runStatePath string, runSt *state.RunState,
+	phase string, code state.ErrorCode, origErr error,
 ) error {
 	now := time.Now().UTC()
-	runState.RunStateValue = "failed"
-	runState.LastError = &state.LastError{
+	runSt.RunStateValue = state.RunStateFailed
+	runSt.LastError = &state.LastError{
 		Code:           code,
 		Phase:          phase,
 		Message:        origErr.Error(),
 		Recoverability: "retryable",
 		OccurredAt:     now,
 	}
-	runState.UpdatedAt = now
+	runSt.UpdatedAt = now
 
-	issueState.IssueWorkflowState = "failed"
+	issueState.IssueWorkflowState = state.IssueWorkflowStateFailed
 	issueState.UpdatedAt = now
 	for i, rec := range issueState.Runs {
-		if rec.RunID == runState.RunID {
-			issueState.Runs[i].RunResult = "failed"
+		if rec.RunID == runSt.RunID {
+			issueState.Runs[i].RunResult = state.RunResultFailed
 			break
 		}
 	}
 
 	return errors.Join(
 		state.WriteIssueState(issueStatePath, issueState),
-		state.WriteRunState(runStatePath, runState),
+		state.WriteRunState(runStatePath, runSt),
 	)
-}
-
-func newUUID() (string, error) {
-	var b [16]byte
-	if _, err := rand.Read(b[:]); err != nil {
-		return "", err
-	}
-	// UUIDv7: embed Unix millisecond timestamp in the first 48 bits.
-	ms := time.Now().UnixMilli()
-	b[0] = byte(ms >> 40)
-	b[1] = byte(ms >> 32)
-	b[2] = byte(ms >> 24)
-	b[3] = byte(ms >> 16)
-	b[4] = byte(ms >> 8)
-	b[5] = byte(ms)
-	b[6] = (b[6] & 0x0f) | 0x70 // version 7
-	b[8] = (b[8] & 0x3f) | 0x80 // variant 10xx
-	return fmt.Sprintf("%x-%x-%x-%x-%x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:]), nil
 }

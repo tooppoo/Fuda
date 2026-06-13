@@ -2,15 +2,11 @@
 
 ## 各コマンドの前提: Repository Root 解決
 
-`kogoto resolve`、`kogoto status` などのコマンドは、実行前に次のコマンドでリポジトリルートを解決する。
-
-```bash
-git rev-parse --show-toplevel
-```
+`kogoto resolve`、`kogoto status` などのコマンドは、実行前に Git リポジトリルートを解決する。
 
 解決したディレクトリを `.kogoto/` 状態データの base path として使用する。
 
-Git リポジトリ外など `git rev-parse` が失敗した場合、コマンドはエラーで停止する。
+Git リポジトリ外など、リポジトリルートを解決できない場合はエラーで停止する。
 
 ---
 

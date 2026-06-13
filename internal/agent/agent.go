@@ -16,8 +16,15 @@ type Task struct {
 	Description string
 }
 
+type PlanningResult string
+
+const (
+	PlanningResultReadyToWrite       PlanningResult = "ready_to_write"
+	PlanningResultBlockedByAmbiguity PlanningResult = "blocked_by_ambiguity"
+)
+
 type Plan struct {
-	PlanningResult string
+	PlanningResult PlanningResult
 	Summary        string
 	Tasks          []Task
 	Questions      []Question

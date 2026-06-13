@@ -13,7 +13,7 @@ type Writer struct{}
 func (w *Writer) Plan(_ context.Context, _ agent.PlanInput) (agent.PlanResult, error) {
 	return agent.PlanResult{
 		Plan: agent.Plan{
-			PlanningResult: "blocked_by_ambiguity",
+			PlanningResult: agent.PlanningResultBlockedByAmbiguity,
 			Summary:        "Cannot proceed: clarification required before implementation.",
 			Questions: []agent.Question{
 				{

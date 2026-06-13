@@ -25,8 +25,8 @@ func TestWriterPlanReturnsBlockedByAmbiguity(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Plan returned error: %v", err)
 	}
-	if result.Plan.PlanningResult != "blocked_by_ambiguity" {
-		t.Errorf("PlanningResult: got %q, want %q", result.Plan.PlanningResult, "blocked_by_ambiguity")
+	if result.Plan.PlanningResult != agent.PlanningResultBlockedByAmbiguity {
+		t.Errorf("PlanningResult: got %q, want %q", result.Plan.PlanningResult, agent.PlanningResultBlockedByAmbiguity)
 	}
 	if len(result.Plan.Questions) == 0 {
 		t.Error("Questions should not be empty")

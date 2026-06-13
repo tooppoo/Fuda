@@ -78,8 +78,8 @@ func TestResolveBlockedFlow(t *testing.T) {
 		t.Fatalf("read issue-state.json: %v", err)
 	}
 
-	if issueState.IssueWorkflowState != "waiting_for_human" {
-		t.Errorf("IssueWorkflowState: got %q, want %q", issueState.IssueWorkflowState, "waiting_for_human")
+	if issueState.IssueWorkflowState != state.IssueWorkflowStateWaitingForHuman {
+		t.Errorf("IssueWorkflowState: got %q, want %q", issueState.IssueWorkflowState, state.IssueWorkflowStateWaitingForHuman)
 	}
 	if issueState.CurrentRunID != result.RunID {
 		t.Errorf("CurrentRunID: got %q, want %q", issueState.CurrentRunID, result.RunID)
@@ -90,22 +90,22 @@ func TestResolveBlockedFlow(t *testing.T) {
 
 	// Verify run.json.
 	runStatePath := state.RunStatePath(dir, "github.com", "testowner", "testrepo", 59, result.RunID)
-	runState, err := state.ReadRunState(runStatePath)
+	runSt, err := state.ReadRunState(runStatePath)
 	if err != nil {
 		t.Fatalf("read run.json: %v", err)
 	}
 
-	if runState.RunStateValue != "blocked" {
-		t.Errorf("RunStateValue: got %q, want %q", runState.RunStateValue, "blocked")
+	if runSt.RunStateValue != state.RunStateBlocked {
+		t.Errorf("RunStateValue: got %q, want %q", runSt.RunStateValue, state.RunStateBlocked)
 	}
-	if runState.Blocked == nil {
+	if runSt.Blocked == nil {
 		t.Fatal("Blocked info should not be nil")
 	}
-	if len(runState.Blocked.Questions) == 0 {
+	if len(runSt.Blocked.Questions) == 0 {
 		t.Error("Blocked.Questions should not be empty")
 	}
-	if runState.Blocked.QuestionCommentID != 12345 {
-		t.Errorf("QuestionCommentID: got %d, want 12345", runState.Blocked.QuestionCommentID)
+	if runSt.Blocked.QuestionCommentID != 12345 {
+		t.Errorf("QuestionCommentID: got %d, want 12345", runSt.Blocked.QuestionCommentID)
 	}
 
 	// Verify comment contains kogoto marker.

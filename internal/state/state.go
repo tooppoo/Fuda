@@ -6,24 +6,92 @@ import (
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/santhosh-tekuri/jsonschema/v6"
+	kogotoschemas "github.com/tooppoo/Kogoto/schemas"
+)
+
+// RunStateValue is the run_state field of run.json.
+type RunStateValue string
+
+const (
+	RunStateInitialized         RunStateValue = "initialized"
+	RunStateLoadingIssue        RunStateValue = "loading_issue"
+	RunStatePreparingWorktree   RunStateValue = "preparing_worktree"
+	RunStatePlanning            RunStateValue = "planning"
+	RunStateBlocked             RunStateValue = "blocked"
+	RunStateWriting             RunStateValue = "writing"
+	RunStateTesting             RunStateValue = "testing"
+	RunStateCommitting          RunStateValue = "committing"
+	RunStateReviewing           RunStateValue = "reviewing"
+	RunStateFixing              RunStateValue = "fixing"
+	RunStateHumanReviewRequired RunStateValue = "human_review_required"
+	RunStatePrCreated           RunStateValue = "pr_created"
+	RunStateSucceeded           RunStateValue = "succeeded"
+	RunStateAborted             RunStateValue = "aborted"
+	RunStateFailed              RunStateValue = "failed"
+)
+
+// IssueWorkflowState is the issue_workflow_state field of issue-state.json.
+type IssueWorkflowState string
+
+const (
+	IssueWorkflowStateNotStarted      IssueWorkflowState = "not_started"
+	IssueWorkflowStateActive          IssueWorkflowState = "active"
+	IssueWorkflowStateWaitingForHuman IssueWorkflowState = "waiting_for_human"
+	IssueWorkflowStatePrCreated       IssueWorkflowState = "pr_created"
+	IssueWorkflowStateCompleted       IssueWorkflowState = "completed"
+	IssueWorkflowStateAborted         IssueWorkflowState = "aborted"
+	IssueWorkflowStateFailed          IssueWorkflowState = "failed"
+)
+
+// RunResult is the run_result field of a RunRecord.
+type RunResult string
+
+const (
+	RunResultActive    RunResult = "active"
+	RunResultSucceeded RunResult = "succeeded"
+	RunResultFailed    RunResult = "failed"
+	RunResultAborted   RunResult = "aborted"
+	RunResultRetried   RunResult = "retried"
+)
+
+// BackendType identifies an agent backend.
+type BackendType string
+
+const (
+	BackendTypeClaude BackendType = "claude"
+	BackendTypeCodex  BackendType = "codex"
+)
+
+// ErrorCode is the last_error.code field of run.json.
+type ErrorCode string
+
+const (
+	ErrorCodeWriterLaunchFailed  ErrorCode = "writer_launch_failed"
+	ErrorCodeInvalidWriterOutput ErrorCode = "invalid_writer_output"
+	ErrorCodeRunnerError         ErrorCode = "runner_error"
+	ErrorCodeIssueNotFound       ErrorCode = "issue_not_found"
+	ErrorCodeIssueIsPR           ErrorCode = "issue_is_pr"
+	ErrorCodeVerificationFailed  ErrorCode = "verification_failed"
 )
 
 // IssueState is the content of issue-state.json.
 type IssueState struct {
-	SchemaVersion      int         `json:"schema_version"`
-	Repository         string      `json:"repository"`
-	IssueNumber        int         `json:"issue_number"`
-	IssueWorkflowState string      `json:"issue_workflow_state"`
-	CurrentRunID       string      `json:"current_run_id,omitempty"`
-	Runs               []RunRecord `json:"runs"`
-	SourceIssue        SourceIssue `json:"source_issue"`
-	CreatedAt          time.Time   `json:"created_at"`
-	UpdatedAt          time.Time   `json:"updated_at"`
+	SchemaVersion      int                `json:"schema_version"`
+	Repository         string             `json:"repository"`
+	IssueNumber        int                `json:"issue_number"`
+	IssueWorkflowState IssueWorkflowState `json:"issue_workflow_state"`
+	CurrentRunID       string             `json:"current_run_id,omitempty"`
+	Runs               []RunRecord        `json:"runs"`
+	SourceIssue        SourceIssue        `json:"source_issue"`
+	CreatedAt          time.Time          `json:"created_at"`
+	UpdatedAt          time.Time          `json:"updated_at"`
 }
 
 type RunRecord struct {
-	RunID     string `json:"run_id"`
-	RunResult string `json:"run_result"`
+	RunID     string    `json:"run_id"`
+	RunResult RunResult `json:"run_result"`
 }
 
 type SourceIssue struct {
@@ -38,7 +106,7 @@ type RunState struct {
 	RunID            string            `json:"run_id"`
 	Repository       string            `json:"repository"`
 	IssueNumber      int               `json:"issue_number"`
-	RunStateValue    string            `json:"run_state"`
+	RunStateValue    RunStateValue     `json:"run_state"`
 	Branch           string            `json:"branch"`
 	Worktree         string            `json:"worktree"`
 	Writer           Backend           `json:"writer"`
@@ -53,7 +121,7 @@ type RunState struct {
 }
 
 type Backend struct {
-	BackendType string `json:"backend"`
+	BackendType BackendType `json:"backend"`
 }
 
 type ReviewLoop struct {
@@ -81,7 +149,7 @@ type BlockedQuestion struct {
 }
 
 type LastError struct {
-	Code           string    `json:"code"`
+	Code           ErrorCode `json:"code"`
 	Phase          string    `json:"phase"`
 	Message        string    `json:"message"`
 	Recoverability string    `json:"recoverability"`
@@ -119,6 +187,9 @@ func ReadIssueState(path string) (*IssueState, error) {
 	if err != nil {
 		return nil, err
 	}
+	if err := validateJSON(compiledIssueStateSchema, data); err != nil {
+		return nil, fmt.Errorf("schema validation %s: %w", path, err)
+	}
 	var s IssueState
 	if err := json.Unmarshal(data, &s); err != nil {
 		return nil, fmt.Errorf("parse %s: %w", path, err)
@@ -127,13 +198,16 @@ func ReadIssueState(path string) (*IssueState, error) {
 }
 
 func WriteIssueState(path string, s *IssueState) error {
-	return writeJSON(path, s)
+	return writeJSON(path, s, compiledIssueStateSchema)
 }
 
 func ReadRunState(path string) (*RunState, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
+	}
+	if err := validateJSON(compiledRunStateSchema, data); err != nil {
+		return nil, fmt.Errorf("schema validation %s: %w", path, err)
 	}
 	var s RunState
 	if err := json.Unmarshal(data, &s); err != nil {
@@ -143,10 +217,38 @@ func ReadRunState(path string) (*RunState, error) {
 }
 
 func WriteRunState(path string, s *RunState) error {
-	return writeJSON(path, s)
+	return writeJSON(path, s, compiledRunStateSchema)
 }
 
-func writeJSON(path string, v interface{}) error {
+var (
+	compiledRunStateSchema   *jsonschema.Schema
+	compiledIssueStateSchema *jsonschema.Schema
+)
+
+func init() {
+	must := func(err error) {
+		if err != nil {
+			panic(err)
+		}
+	}
+	c := jsonschema.NewCompiler()
+	c.AssertFormat()
+
+	var runSchemaDoc, issueStateSchemaDoc any
+	must(json.Unmarshal(kogotoschemas.RunSchemaJSON, &runSchemaDoc))
+	must(json.Unmarshal(kogotoschemas.IssueStateSchemaJSON, &issueStateSchemaDoc))
+
+	must(c.AddResource("run.schema.json", runSchemaDoc))
+	var err error
+	compiledRunStateSchema, err = c.Compile("run.schema.json")
+	must(err)
+
+	must(c.AddResource("issue-state.schema.json", issueStateSchemaDoc))
+	compiledIssueStateSchema, err = c.Compile("issue-state.schema.json")
+	must(err)
+}
+
+func writeJSON(path string, v interface{}, schema *jsonschema.Schema) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
 		return err
 	}
@@ -154,9 +256,20 @@ func writeJSON(path string, v interface{}) error {
 	if err != nil {
 		return err
 	}
+	if err := validateJSON(schema, data); err != nil {
+		return fmt.Errorf("schema validation: %w", err)
+	}
 	tmp := path + ".tmp"
 	if err := os.WriteFile(tmp, append(data, '\n'), 0644); err != nil {
 		return err
 	}
 	return os.Rename(tmp, path)
+}
+
+func validateJSON(schema *jsonschema.Schema, data []byte) error {
+	var doc any
+	if err := json.Unmarshal(data, &doc); err != nil {
+		return err
+	}
+	return schema.Validate(doc)
 }
