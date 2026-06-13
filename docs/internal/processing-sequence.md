@@ -1,5 +1,15 @@
 # 処理シーケンス
 
+## 各コマンドの前提: Repository Root 解決
+
+`kogoto resolve`、`kogoto status` などのコマンドは、実行前に Git リポジトリルートを解決する。
+
+解決したディレクトリを `.kogoto/` 状態データの base path として使用する。
+
+Git リポジトリ外など、リポジトリルートを解決できない場合はエラーで停止する。
+
+---
+
 ## `kogoto resolve <issue-number>` の処理フロー
 
 ```bash
@@ -182,6 +192,47 @@ sequenceDiagram
     kogoto->>kogoto: set run_state=succeeded
     kogoto-->>user: done
 ```
+
+---
+
+## `kogoto status [issue-number]` の処理フロー
+
+### `kogoto status`（Issue番号なし）
+
+1. Repository root を解決する
+2. `.kogoto/repositories/{host}/{owner}/{repo}/issues/` 配下のディレクトリを走査する
+3. ディレクトリ名を Issue 番号として解釈できないものはスキップする
+4. 各 Issue の `issue-state.json` を読み込む。存在しない場合はスキップする
+5. `issue_workflow_state` が `active` または `waiting_for_human` のものだけ `kogoto status <issue-number>` と同じ出力を行う
+6. 1件も該当しない場合は "No active runs." を表示して終了する
+
+```mermaid
+sequenceDiagram
+    actor user
+    participant kogoto
+    participant state
+
+    user->>kogoto: status
+    kogoto->>state: scan issues/
+    loop each issue directory
+        kogoto->>state: read issue-state.json
+        alt issue_workflow_state is active or waiting_for_human
+            kogoto->>state: read run.json (current_run_id 経由)
+            kogoto-->>user: issue / run summary
+        end
+    end
+    alt no active runs found
+        kogoto-->>user: No active runs.
+    end
+```
+
+### `kogoto status <issue-number>`
+
+1. Repository root を解決する
+2. `issue-state.json` を読み込む。存在しない場合は "Issue #N: no state found" を表示して終了する
+3. `issue_workflow_state` と `current_run_id` を表示する
+4. `current_run_id` が存在する場合、`run.json` を読み込む
+5. `run_state` と `blocked` 状態の質問一覧を表示する
 
 ---
 

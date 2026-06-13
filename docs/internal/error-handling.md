@@ -115,6 +115,7 @@ Run の各 phase における失敗ケースを以下に定義する。`Run stat
 | GitHub認証失敗 | `loading_issue` | `github_auth_failed` | 設定修正後に再実行 | 停止 | `failed` |
 | Issueが存在しない | `loading_issue` | `issue_not_found` | no | worktree を作らず停止 | `failed` |
 | Issueがclosed | `loading_issue` | `issue_closed` | デフォルトでは no | closed Issue を勝手に再 open せず停止 | `failed` |
+| Issue番号がPRを指している | `loading_issue` | `issue_is_pr` | no | PR を Issue として扱わず停止。state ファイル未作成のため cleanup 不要 | `failed` |
 | main更新失敗 | `preparing_worktree` | `main_update_failed` | yes | worktree 作成前に停止 | `failed` |
 | worktree作成失敗 | `preparing_worktree` | `worktree_create_failed` | 手動修正後に再実行 | 既存ファイルを壊さず停止 | `failed` |
 | branch既存 (Kogoto管理runあり) | `preparing_worktree` | `branch_already_exists` | 既存 run を resume | 既存 run の状態を表示して停止 | 既存 run の `run_state` |
@@ -123,6 +124,7 @@ Run の各 phase における失敗ケースを以下に定義する。`Run stat
 | worktree path既存 (Kogoto管理run不明) | `preparing_worktree` | `worktree_path_already_exists` | 手動確認後に再実行 | 上書きせず停止 | `failed` |
 | writer agent起動失敗 | `planning` / `writing` | `writer_launch_failed` | yes | raw なしで停止 | `failed` |
 | writer出力が不正 | `planning` / `writing` / `fixing` | `invalid_writer_output` | 明示的な再実行 | raw 保存、正規化 JSON を書かず停止 | `failed` |
+| blocked コメント投稿失敗 | `posting_comment` | `runner_error` | yes | issue-state / run.json を failed に更新して停止 | `failed` |
 | test / lint / typecheck失敗 | `testing` | `verification_failed` | `max_retries` 回まで writer に修正依頼 | retry 中は `testing` → `fixing` を経由。上限到達後: PR 作成せず停止、失敗 command / exit code / 要約 log を表示 | `failed` |
 | commit対象変更なし | `committing` | `nothing_to_commit` | デフォルトでは no | PR 作成せず停止 | `failed` |
 | commit失敗 | `committing` | `commit_failed` | 手動修正後に再実行 | diff を保持して停止 | `failed` |
@@ -130,6 +132,21 @@ Run の各 phase における失敗ケースを以下に定義する。`Run stat
 | reviewer出力が不正 | `reviewing` | `invalid_reviewer_output` | 明示的な再レビュー | `review-N.raw.txt` のみ保存、`review-N.json` を書かず停止 | `failed` |
 | push失敗 | `pushing` | `push_failed` | yes | local commit を保持して停止 | `failed` |
 | PR作成失敗 | `creating_pr` | `pr_create_failed` | yes | branch / commit を保持して停止 | `failed` |
+
+---
+
+## Planning / Comment 投稿失敗時のクリーンアップ
+
+`planning` フェーズおよび blocked コメント投稿（`posting_comment`）フェーズで失敗した場合、state ファイルが既に作成済みのため次のクリーンアップを行う。
+
+1. `run.json.run_state` を `failed` にする
+2. `run.json.last_error` に失敗詳細（`code` / `phase` / `message`）を書く
+3. `issue-state.json.issue_workflow_state` を `failed` にする
+4. `issue-state.json.runs` の対応 RunRecord の `run_result` を `failed` にする
+
+クリーンアップ自体が失敗した場合、元の失敗 error と cleanup error を連結して返す（`errors.Join`）。クリーンアップ失敗が元の失敗原因を隠蔽しないようにする。
+
+`loading_issue` フェーズ中（`issue-state.json` / `run.json` 未作成）の失敗は state ファイルを作成しないため、このクリーンアップは不要。
 
 ---
 
