@@ -23,15 +23,13 @@ func New(owner, repo, token, host string) (*Client, error) {
 		ghClient = gogithub.NewClient(nil).WithAuthToken(token)
 	} else {
 		var err error
-		ghClient, err = gogithub.NewEnterpriseClient(
+		ghClient, err = gogithub.NewClient(nil).WithAuthToken(token).WithEnterpriseURLs(
 			fmt.Sprintf("https://%s/api/v3/", host),
 			fmt.Sprintf("https://%s/api/uploads/", host),
-			nil,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("create GitHub enterprise client for %s: %w", host, err)
 		}
-		ghClient = ghClient.WithAuthToken(token)
 	}
 	return &Client{owner: owner, repo: repo, client: ghClient}, nil
 }
