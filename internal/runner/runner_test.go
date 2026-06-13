@@ -2,6 +2,7 @@ package runner_test
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"testing"
 	"time"
@@ -17,6 +18,7 @@ type mockTracker struct {
 	issue       tracker.Issue
 	commentID   int64
 	commentBody string
+	postErr     error
 }
 
 func (m *mockTracker) GetIssue(_ context.Context, _ int) (tracker.Issue, error) {
@@ -24,6 +26,9 @@ func (m *mockTracker) GetIssue(_ context.Context, _ int) (tracker.Issue, error) 
 }
 
 func (m *mockTracker) PostComment(_ context.Context, _ int, body string) (int64, error) {
+	if m.postErr != nil {
+		return 0, m.postErr
+	}
 	m.commentBody = body
 	return m.commentID, nil
 }
@@ -115,6 +120,60 @@ func TestResolveBlockedFlow(t *testing.T) {
 	if !strings.Contains(mt.commentBody, result.RunID) {
 		t.Errorf("comment should contain run ID %q, got:\n%s", result.RunID, mt.commentBody)
 	}
+}
+
+func TestResolveCommentFailureIsRetryable(t *testing.T) {
+	dir := t.TempDir()
+	cfg := testConfig()
+
+	mt := &mockTracker{
+		issue: tracker.Issue{
+			Number:    59,
+			Title:     "Test Issue",
+			Body:      "Test body",
+			URL:       "https://github.com/testowner/testrepo/issues/59",
+			UpdatedAt: time.Now().UTC(),
+		},
+		postErr: errors.New("github is down"),
+	}
+
+	r := runner.New(dir, cfg, mt, &fake.Writer{})
+	if _, err := r.Resolve(context.Background(), 59); err == nil {
+		t.Fatal("Resolve should fail when posting the blocked comment fails")
+	}
+
+	runStatePath := state.RunStatePath(dir, "github.com", "testowner", "testrepo", 59, mustCurrentRunID(t, dir))
+	runSt, err := state.ReadRunState(runStatePath)
+	if err != nil {
+		t.Fatalf("read run.json: %v", err)
+	}
+
+	if runSt.RunStateValue != state.RunStateFailed {
+		t.Errorf("RunStateValue: got %q, want %q", runSt.RunStateValue, state.RunStateFailed)
+	}
+	if runSt.LastError == nil {
+		t.Fatal("LastError should not be nil")
+	}
+	if runSt.LastError.Code != state.ErrorCodeRunnerError {
+		t.Errorf("LastError.Code: got %q, want %q", runSt.LastError.Code, state.ErrorCodeRunnerError)
+	}
+	// posting_comment failure is a transient runner_error and stays retryable,
+	// overriding the manual_inspection_required default for runner_error.
+	if runSt.LastError.Recoverability != state.RecoverabilityRetryable {
+		t.Errorf("LastError.Recoverability: got %q, want %q", runSt.LastError.Recoverability, state.RecoverabilityRetryable)
+	}
+}
+
+// mustCurrentRunID reads the current run id recorded in issue-state.json for
+// issue 59 under the testowner/testrepo fixture.
+func mustCurrentRunID(t *testing.T, dir string) string {
+	t.Helper()
+	issueStatePath := state.IssueStatePath(dir, "github.com", "testowner", "testrepo", 59)
+	issueState, err := state.ReadIssueState(issueStatePath)
+	if err != nil {
+		t.Fatalf("read issue-state.json: %v", err)
+	}
+	return issueState.CurrentRunID
 }
 
 func TestResolveRefusesActiveRun(t *testing.T) {

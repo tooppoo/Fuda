@@ -292,4 +292,4 @@ run-summary.json.pull_request      = { number: ..., url: ... }
 | `pr_created` | conditional | Verify PR info and write summary / finalize if safe |
 | `succeeded` | no | Terminal |
 | `aborted` | no | Terminal |
-| `failed` | no | Terminal by default |
+| `failed` | conditional | `last_error.recoverability` に従う。`retryable` のみ自動再試行可。`retryable_after_human_confirmation` / `retryable_after_manual_fix` は人間の確認・修正後の明示再開のみ。`manual_inspection_required` / `terminal` は自動再開しない（`terminal` は resume 拒否）。詳細は `error-handling.md` の「Recoverability と resume」を参照 |

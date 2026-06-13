@@ -109,6 +109,30 @@ func TestRunStateRoundTrip(t *testing.T) {
 	}
 }
 
+func TestRecoverabilityFor(t *testing.T) {
+	cases := []struct {
+		code state.ErrorCode
+		want state.Recoverability
+	}{
+		{state.ErrorCodeWriterLaunchFailed, state.RecoverabilityRetryable},
+		{state.ErrorCodeInvalidWriterOutput, state.RecoverabilityRetryableAfterHumanConfirmation},
+		{state.ErrorCodeRunnerError, state.RecoverabilityManualInspectionRequired},
+		{state.ErrorCodeIssueNotFound, state.RecoverabilityTerminal},
+		{state.ErrorCodeIssueIsPR, state.RecoverabilityTerminal},
+		{state.ErrorCodeVerificationFailed, state.RecoverabilityManualInspectionRequired},
+	}
+	for _, c := range cases {
+		if got := state.RecoverabilityFor(c.code); got != c.want {
+			t.Errorf("RecoverabilityFor(%q): got %q, want %q", c.code, got, c.want)
+		}
+	}
+
+	// Unknown codes must not become auto-resumable.
+	if got := state.RecoverabilityFor(state.ErrorCode("unknown_code")); got != state.RecoverabilityManualInspectionRequired {
+		t.Errorf("RecoverabilityFor(unknown): got %q, want %q", got, state.RecoverabilityManualInspectionRequired)
+	}
+}
+
 func TestStatePaths(t *testing.T) {
 	base := "/base"
 	host := "github.com"

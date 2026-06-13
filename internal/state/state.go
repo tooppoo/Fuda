@@ -76,6 +76,53 @@ const (
 	ErrorCodeVerificationFailed  ErrorCode = "verification_failed"
 )
 
+// Recoverability is the last_error.recoverability field of run.json. It is a
+// control value used for resume / retry / abort / manual inspection decisions,
+// not a display-only string. See docs/internal/error-handling.md and
+// schemas/run.schema.md for the authoritative semantics.
+type Recoverability string
+
+const (
+	// RecoverabilityRetryable means a transient failure that resume may retry
+	// automatically.
+	RecoverabilityRetryable Recoverability = "retryable"
+	// RecoverabilityRetryableAfterHumanConfirmation means resume requires
+	// explicit human confirmation; no automatic resume.
+	RecoverabilityRetryableAfterHumanConfirmation Recoverability = "retryable_after_human_confirmation"
+	// RecoverabilityRetryableAfterManualFix means resume requires the human to
+	// fix external state (config / git / filesystem) first; no automatic resume.
+	RecoverabilityRetryableAfterManualFix Recoverability = "retryable_after_manual_fix"
+	// RecoverabilityManualInspectionRequired means the failure cause or current
+	// state is unclear; do not resume automatically until a human inspects it.
+	RecoverabilityManualInspectionRequired Recoverability = "manual_inspection_required"
+	// RecoverabilityTerminal means the run is unrecoverable and resume must be
+	// rejected.
+	RecoverabilityTerminal Recoverability = "terminal"
+)
+
+// recoverabilityByCode is the default recoverability for each ErrorCode. The
+// authoritative mapping lives in schemas/run.schema.md ("recoverability enum").
+// runner_error / environment_error are unclassified codes whose default is
+// manual_inspection_required; callers may override per occurrence.
+var recoverabilityByCode = map[ErrorCode]Recoverability{
+	ErrorCodeWriterLaunchFailed:  RecoverabilityRetryable,
+	ErrorCodeInvalidWriterOutput: RecoverabilityRetryableAfterHumanConfirmation,
+	ErrorCodeRunnerError:         RecoverabilityManualInspectionRequired,
+	ErrorCodeIssueNotFound:       RecoverabilityTerminal,
+	ErrorCodeIssueIsPR:           RecoverabilityTerminal,
+	ErrorCodeVerificationFailed:  RecoverabilityManualInspectionRequired,
+}
+
+// RecoverabilityFor returns the default recoverability for the given error
+// code. Unknown codes default to manual_inspection_required so that an
+// unclassified failure never silently becomes auto-resumable.
+func RecoverabilityFor(code ErrorCode) Recoverability {
+	if r, ok := recoverabilityByCode[code]; ok {
+		return r
+	}
+	return RecoverabilityManualInspectionRequired
+}
+
 // IssueState is the content of issue-state.json.
 type IssueState struct {
 	SchemaVersion      int                `json:"schema_version"`
@@ -149,12 +196,12 @@ type BlockedQuestion struct {
 }
 
 type LastError struct {
-	Code           ErrorCode `json:"code"`
-	Phase          string    `json:"phase"`
-	Message        string    `json:"message"`
-	Recoverability string    `json:"recoverability"`
-	OccurredAt     time.Time `json:"occurred_at"`
-	Artifact       string    `json:"artifact,omitempty"`
+	Code           ErrorCode      `json:"code"`
+	Phase          string         `json:"phase"`
+	Message        string         `json:"message"`
+	Recoverability Recoverability `json:"recoverability"`
+	OccurredAt     time.Time      `json:"occurred_at"`
+	Artifact       string         `json:"artifact,omitempty"`
 }
 
 type PullRequest struct {

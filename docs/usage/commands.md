@@ -144,6 +144,18 @@ kogoto resume 7
 
 `answer` 後の再開や、手動で中断したrunを再開する場合に使う。
 
+`failed` で停止したrunに対しては、`run.json` の `last_error.recoverability` に従って扱いを変える。
+
+| `recoverability` | `kogoto resume` の挙動 |
+|------------------|------------------------|
+| `retryable` | 失敗phaseから再試行する |
+| `retryable_after_human_confirmation` | 内容を確認したうえでの実行のみ受け付け、再試行する |
+| `retryable_after_manual_fix` | 設定・git・ファイル等の外部状態を修正済みである前提で再試行する |
+| `manual_inspection_required` | 自動再開せず、調査が必要である旨を表示して停止する |
+| `terminal` | 再開を拒否する。新規対応として扱う |
+
+`recoverability` enum の意味は `docs/internal/error-handling.md` の「Recoverability と resume」を参照。
+
 ---
 
 ## `kogoto abort <issue-number>`

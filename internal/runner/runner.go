@@ -168,7 +168,7 @@ func (r *Runner) Resolve(ctx context.Context, issueNumber int) (*ResolveResult, 
 	commentBody := formatBlockedComment(runIDStr, issueNumber, planResult.Plan.Questions)
 	commentID, err := r.tracker.PostComment(ctx, issueNumber, commentBody)
 	if err != nil {
-		cleanupErr := markFailed(issueStatePath, issueState, runStatePath, runSt, "posting_comment", state.ErrorCodeRunnerError, err)
+		cleanupErr := markFailed(issueStatePath, issueState, runStatePath, runSt, "posting_comment", state.ErrorCodeRunnerError, err, state.RecoverabilityRetryable)
 		return nil, errors.Join(fmt.Errorf("post blocked comment: %w", err), cleanupErr)
 	}
 
@@ -298,18 +298,26 @@ func (r *Runner) StatusActive() error {
 	return nil
 }
 
+// markFailed transitions the run to failed and records last_error. The
+// recoverability defaults to state.RecoverabilityFor(code); pass a single
+// override to set it explicitly for unclassified codes (e.g. runner_error).
 func markFailed(
 	issueStatePath string, issueState *state.IssueState,
 	runStatePath string, runSt *state.RunState,
 	phase string, code state.ErrorCode, origErr error,
+	recoverabilityOverride ...state.Recoverability,
 ) error {
+	recoverability := state.RecoverabilityFor(code)
+	if len(recoverabilityOverride) > 0 {
+		recoverability = recoverabilityOverride[0]
+	}
 	now := time.Now().UTC()
 	runSt.RunStateValue = state.RunStateFailed
 	runSt.LastError = &state.LastError{
 		Code:           code,
 		Phase:          phase,
 		Message:        origErr.Error(),
-		Recoverability: "retryable",
+		Recoverability: recoverability,
 		OccurredAt:     now,
 	}
 	runSt.UpdatedAt = now

@@ -152,7 +152,13 @@
         },
         "recoverability": {
           "type": "string",
-          "minLength": 1
+          "enum": [
+            "retryable",
+            "retryable_after_human_confirmation",
+            "retryable_after_manual_fix",
+            "manual_inspection_required",
+            "terminal"
+          ]
         },
         "occurred_at": {
           "type": "string",
